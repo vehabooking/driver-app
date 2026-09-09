@@ -8,6 +8,7 @@ import 'app/core/i18n/app_translations.dart';
 import 'app/core/location/driver_tracking_service.dart';
 import 'app/core/location/location_service.dart';
 import 'app/core/network/api_client.dart';
+import 'app/core/network/session_watcher.dart';
 import 'app/core/routes/app_pages.dart';
 import 'app/core/routes/app_routes.dart';
 import 'app/core/storage/storage_service.dart';
@@ -67,6 +68,10 @@ Future<void> main() async {
   // the account signed in on another phone, or dispatch reset it. (A silent
   // push usually gets there first; this is the fallback.)
   api.onUnauthorized = () => unawaited(auth.forceSignOut());
+
+  // A phone left open never calls the API, so it would sit on stale data after
+  // its session was revoked elsewhere. Re-check once on every foreground.
+  Get.put(SessionWatcher().start(), permanent: true);
 
   // Every launch starts on the animated splash, which then routes to
   // Welcome (first run) / Home (logged in) / Login.
