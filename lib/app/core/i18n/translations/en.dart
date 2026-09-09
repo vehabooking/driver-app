@@ -213,6 +213,8 @@ const Map<String, String> enUS = {
   'swipe_to_drop': 'Swipe to Drop Off',
   'started_done': 'Trip started.',
   'arrived_done': 'Marked as arrived.',
+  'arrived_too_far':
+      'You are @distance from the pickup point. Move within @radius to mark as arrived.',
   'met_done': 'Passenger on board.',
   'step_start': 'Start',
   'step_arrived': 'Arrived',
@@ -341,6 +343,8 @@ const Map<String, String> enUS = {
   'pickup_arrival_zone_message': 'Confirm after you have stopped safely.',
   'tracking_action_required':
       'Trip tracking stopped. If you already dropped the passenger, please complete the trip.',
+  'tracking_background_unavailable':
+      'Background tracking could not start. Keep the app open during the trip so your live location is shared.',
 
   // Actions
   'accept_booking': 'Accept booking',

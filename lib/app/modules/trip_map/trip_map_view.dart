@@ -9,6 +9,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import '../../core/location/location_service.dart';
+import '../../core/location/pickup_arrival_gate.dart';
 import '../../core/maps/route_map_args.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/theme/app_colors.dart';
@@ -37,12 +38,15 @@ const _focusedMapStyle = '''
 ''';
 
 const _routeRefreshInterval = Duration(seconds: 30);
-const _routeRefreshDistanceMeters = 80.0;
+// Google Routes is only re-queried when the driver actually leaves the road
+// line (or it goes stale) — following the route as expected costs nothing.
+const _routeRefreshDistanceMeters = 80.0; // fallback when no road line yet
+const _routeOffRouteMeters = 60.0;
+const _routeMaxAge = Duration(minutes: 3);
 const _markerUpdateDistanceMeters = 2.0;
 const _locationSyncInterval = Duration(seconds: 20);
 const _locationSyncDistanceMeters = 20.0;
 const _pickupApproachingDistanceMeters = 1000.0;
-const _pickupArrivalDistanceMeters = 200.0;
 
 class TripMapView extends StatefulWidget {
   const TripMapView({super.key});
@@ -57,6 +61,7 @@ class _TripMapViewState extends State<TripMapView> {
   DriverLocation? _lastRouteLocation;
   DriverLocation? _lastSyncedLocation;
   DateTime? _lastLocationSyncAt;
+  DateTime? _lastRouteAt;
   TripRoute? _roadRoute;
   String? _lastRouteMode;
   Timer? _routeRefreshTimer;
@@ -130,6 +135,7 @@ class _TripMapViewState extends State<TripMapView> {
                 stage: _booking?.stage,
                 driverTripStatus: _booking?.driverTripStatus,
                 pickupDistanceMeters: _pickupDistanceMeters,
+                arrivalRadiusMeters: _arrivalRadiusMeters,
                 onToggleCollapsed: () =>
                     setState(() => _isSheetCollapsed = !_isSheetCollapsed),
                 onNavigate: _navigate,
@@ -203,12 +209,15 @@ class _TripMapViewState extends State<TripMapView> {
   Future<void> _runMapAction() async {
     final action = _mapAction;
     if (action == null || _isActing) return;
+    if (action == 'arrived' && !await _ensureAtPickup()) return;
     if (!await confirmStepAction(action)) return;
 
     setState(() => _isActing = true);
     try {
       final repo = Get.find<BookingRepository>();
-      if (action == 'complete') {
+      // Post the current fix first: the server re-checks arrival distance
+      // and records where the trip was completed.
+      if (action == 'arrived' || action == 'complete') {
         final location = _driverLocation;
         final assignmentId = args.assignmentId;
         if (location != null && assignmentId != null) {
@@ -272,6 +281,49 @@ class _TripMapViewState extends State<TripMapView> {
       if (mounted) setState(() => _isActing = false);
     }
   }
+
+  /// "Arrived" only counts when the driver is physically at the pickup point.
+  /// Prefers a fresh GPS fix over the last streamed position.
+  Future<bool> _ensureAtPickup() async {
+    DriverLocation? location;
+    try {
+      location = await Get.find<LocationService>().current();
+    } catch (_) {
+      location = _driverLocation;
+    }
+    if (location == null) {
+      AppSnackbar.error('location_unavailable'.tr);
+      return false;
+    }
+    _setDriverLocation(location, force: true);
+
+    final distance = PickupArrivalGate.distanceToPickup(
+      location,
+      pickupLatitude: args.pickup.latitude,
+      pickupLongitude: args.pickup.longitude,
+    );
+    // No pickup coordinates → nothing to check against.
+    if (distance == null) return true;
+
+    final radius = _arrivalRadiusMeters;
+    if (!PickupArrivalGate.isWithinRadius(
+      distance,
+      location,
+      radiusMeters: radius,
+    )) {
+      AppSnackbar.error(
+        'arrived_too_far'.trParams({
+          'distance': PickupArrivalGate.formatDistance(distance),
+          'radius': PickupArrivalGate.formatDistance(radius),
+        }),
+      );
+      return false;
+    }
+    return true;
+  }
+
+  double get _arrivalRadiusMeters =>
+      _booking?.arrivalRadiusMeters ?? PickupArrivalGate.defaultRadiusMeters;
 
   Future<void> _reloadRouteAfterStepChange() async {
     while (mounted && _isLoadingRoute) {
@@ -640,15 +692,7 @@ class _TripMapViewState extends State<TripMapView> {
         return;
       }
 
-      final lastRouteLocation = _lastRouteLocation;
-      if (lastRouteLocation == null ||
-          _distanceMeters(
-                lastRouteLocation.latitude,
-                lastRouteLocation.longitude,
-                location.latitude,
-                location.longitude,
-              ) >=
-              _routeRefreshDistanceMeters) {
+      if (_needsRouteRefresh(location)) {
         await _loadRoadRoute();
       } else {
         await _fitCamera();
@@ -711,6 +755,7 @@ class _TripMapViewState extends State<TripMapView> {
         _roadRoute = route;
         _lastRouteLocation = _hasUsableDriverLocation ? _driverLocation : null;
         _lastRouteMode = mode;
+        _lastRouteAt = DateTime.now();
       });
       await _fitCamera();
     } catch (_) {
@@ -726,18 +771,75 @@ class _TripMapViewState extends State<TripMapView> {
       return true;
     }
 
-    final last = _lastRouteLocation;
-    if (last == null) {
+    return _needsRouteRefresh(current);
+  }
+
+  /// Re-query Google only when the driver has left the road line, the line
+  /// has gone stale, or there is no line to follow yet.
+  bool _needsRouteRefresh(DriverLocation location) {
+    final route = _roadRoute;
+    final lastRouteLocation = _lastRouteLocation;
+    final lastRouteAt = _lastRouteAt;
+
+    if (route == null || !route.hasRoadRoute || lastRouteLocation == null) {
+      return lastRouteLocation == null ||
+          _distanceMeters(
+                lastRouteLocation.latitude,
+                lastRouteLocation.longitude,
+                location.latitude,
+                location.longitude,
+              ) >=
+              _routeRefreshDistanceMeters;
+    }
+
+    if (lastRouteAt != null &&
+        DateTime.now().difference(lastRouteAt) > _routeMaxAge) {
       return true;
     }
 
-    return _distanceMeters(
-          last.latitude,
-          last.longitude,
-          current.latitude,
-          current.longitude,
-        ) >=
-        _routeRefreshDistanceMeters;
+    return _distanceToPolylineMeters(location, route.points) >
+        _routeOffRouteMeters;
+  }
+
+  /// Nearest distance from [location] to any segment of [points].
+  double _distanceToPolylineMeters(
+    DriverLocation location,
+    List<LatLng> points,
+  ) {
+    var best = double.infinity;
+    for (var i = 0; i < points.length - 1; i++) {
+      final d = _distanceToSegmentMeters(
+        location.latitude,
+        location.longitude,
+        points[i],
+        points[i + 1],
+      );
+      if (d < best) best = d;
+    }
+    return best;
+  }
+
+  /// Point-to-segment distance on a local flat projection (fine at city scale).
+  double _distanceToSegmentMeters(
+    double lat,
+    double lng,
+    LatLng a,
+    LatLng b,
+  ) {
+    final cosLat = math.cos(lat * math.pi / 180);
+    // metres per degree
+    const mLat = 111320.0;
+    final mLng = 111320.0 * cosLat;
+
+    final px = (lng - a.longitude) * mLng;
+    final py = (lat - a.latitude) * mLat;
+    final vx = (b.longitude - a.longitude) * mLng;
+    final vy = (b.latitude - a.latitude) * mLat;
+    final len2 = vx * vx + vy * vy;
+    final t = len2 == 0 ? 0.0 : ((px * vx + py * vy) / len2).clamp(0.0, 1.0);
+    final dx = px - t * vx;
+    final dy = py - t * vy;
+    return math.sqrt(dx * dx + dy * dy);
   }
 
   Future<void> _fitCamera() async {
@@ -881,20 +983,8 @@ class _TripMapViewState extends State<TripMapView> {
     return meters <= 1000000;
   }
 
-  double _distanceMeters(double aLat, double aLng, double bLat, double bLng) {
-    const radius = 6371000.0;
-    final dLat = _radians(bLat - aLat);
-    final dLng = _radians(bLng - aLng);
-    final a =
-        math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_radians(aLat)) *
-            math.cos(_radians(bLat)) *
-            math.sin(dLng / 2) *
-            math.sin(dLng / 2);
-    return radius * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-  }
-
-  double _radians(double degrees) => degrees * math.pi / 180;
+  double _distanceMeters(double aLat, double aLng, double bLat, double bLng) =>
+      PickupArrivalGate.distanceMeters(aLat, aLng, bLat, bLng);
 
   Future<BitmapDescriptor> _letterMarker(String letter, Color color) async {
     const size = 66.0;
@@ -1046,6 +1136,7 @@ class _RouteSheet extends StatelessWidget {
     this.stage,
     this.driverTripStatus,
     this.pickupDistanceMeters,
+    this.arrivalRadiusMeters = PickupArrivalGate.defaultRadiusMeters,
   });
 
   final RouteMapArgs args;
@@ -1063,6 +1154,9 @@ class _RouteSheet extends StatelessWidget {
   final String? stage;
   final String? driverTripStatus;
   final double? pickupDistanceMeters;
+
+  /// "You are at the pickup point" notice matches the radius that unlocks Arrived.
+  final double arrivalRadiusMeters;
   final VoidCallback onToggleCollapsed;
   final VoidCallback onNavigate;
   final Future<void> Function() onAction;
@@ -1163,8 +1257,7 @@ class _RouteSheet extends StatelessWidget {
               const SizedBox(height: 10),
               _PickupProximityNotice(
                 distanceMeters: pickupDistanceMeters!,
-                isArrivalZone:
-                    pickupDistanceMeters! <= _pickupArrivalDistanceMeters,
+                isArrivalZone: pickupDistanceMeters! <= arrivalRadiusMeters,
               ),
             ],
             const SizedBox(height: 10),

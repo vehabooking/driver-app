@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:get/get.dart';
 
 import '../../core/location/driver_tracking_service.dart';
 import '../../core/location/location_service.dart';
+import '../../core/location/pickup_arrival_gate.dart';
 import '../../core/maps/route_map_args.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/routes/app_routes.dart';
@@ -94,16 +94,77 @@ class BookingDetailController extends GetxController {
       return;
     }
 
-    return _act(
+    await _act(
       () => _repo.start(uuid, assignmentId: _currentAssignmentId),
       'started_done'.tr,
     );
+
+    // Same as the Home card: once the backend accepts Start, go straight to
+    // the live map with the road route to the pickup point.
+    if (booking.value?.driverTripStatus == 'start') {
+      await openMap();
+    }
   }
 
-  Future<void> arrived() => _act(
-    () => _repo.arrived(uuid, assignmentId: _currentAssignmentId),
-    'arrived_done'.tr,
-  );
+  Future<void> arrived() async {
+    if (!await _ensureAtPickup()) return;
+
+    return _act(
+      () => _repo.arrived(uuid, assignmentId: _currentAssignmentId),
+      'arrived_done'.tr,
+    );
+  }
+
+  /// "Arrived" only counts when the driver is physically at the pickup point.
+  /// Takes a fresh GPS fix (and stores it server-side) rather than trusting
+  /// the last periodic sync.
+  Future<bool> _ensureAtPickup() async {
+    final b = booking.value;
+    if (b == null) return false;
+
+    final DriverLocation? location;
+    try {
+      location = await _trackingService.syncSnapshot(
+        uuid: uuid,
+        assignmentId: _currentAssignmentId,
+      );
+    } on LocationUnavailableException catch (e) {
+      AppSnackbar.error(e.messageKey.tr);
+      return false;
+    } catch (_) {
+      AppSnackbar.error('location_unavailable'.tr);
+      return false;
+    }
+    if (location == null) {
+      AppSnackbar.error('location_unavailable'.tr);
+      return false;
+    }
+    driverLocation.value = location;
+
+    final distance = PickupArrivalGate.distanceToPickup(
+      location,
+      pickupLatitude: b.pickup.latitude,
+      pickupLongitude: b.pickup.longitude,
+    );
+    // No pickup coordinates → nothing to check against.
+    if (distance == null) return true;
+
+    final radius = b.arrivalRadiusMeters;
+    if (!PickupArrivalGate.isWithinRadius(
+      distance,
+      location,
+      radiusMeters: radius,
+    )) {
+      AppSnackbar.error(
+        'arrived_too_far'.trParams({
+          'distance': PickupArrivalGate.formatDistance(distance),
+          'radius': PickupArrivalGate.formatDistance(radius),
+        }),
+      );
+      return false;
+    }
+    return true;
+  }
 
   Future<void> meetPassenger() => _act(
     () => _repo.meetPassenger(uuid, assignmentId: _currentAssignmentId),
@@ -208,10 +269,13 @@ class BookingDetailController extends GetxController {
     }
   }
 
+  /// Live tracking runs in the background service and is only torn down when
+  /// this trip reaches a terminal state (mode → off); it deliberately survives
+  /// leaving this screen (see [onClose]).
   void _watchTracking() {
     final b = booking.value;
     if (b == null) {
-      _trackingService.stop();
+      _trackingService.detach();
       return;
     }
 
@@ -270,7 +334,7 @@ class BookingDetailController extends GetxController {
       return;
     }
 
-    final distance = _distanceMeters(
+    final distance = PickupArrivalGate.distanceMeters(
       location.latitude,
       location.longitude,
       booking.pickup.latitude!,
@@ -284,21 +348,6 @@ class BookingDetailController extends GetxController {
     _nearPickupReminderKeys.add(key);
     AppSnackbar.info('near_pickup_attention'.tr);
   }
-
-  double _distanceMeters(double aLat, double aLng, double bLat, double bLng) {
-    const radius = 6371000.0;
-    final dLat = _radians(bLat - aLat);
-    final dLng = _radians(bLng - aLng);
-    final a =
-        math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_radians(aLat)) *
-            math.cos(_radians(bLat)) *
-            math.sin(dLng / 2) *
-            math.sin(dLng / 2);
-    return radius * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-  }
-
-  double _radians(double degrees) => degrees * math.pi / 180;
 
   Future<void> navigateToPickup() async {
     final b = booking.value;
@@ -409,7 +458,9 @@ class BookingDetailController extends GetxController {
 
   @override
   void onClose() {
-    _trackingService.stop();
+    // Keep a live background session running; only drop the screen-bound
+    // snapshot timer and reminder callback.
+    _trackingService.detach();
     super.onClose();
   }
 }

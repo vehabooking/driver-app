@@ -38,7 +38,12 @@ Future<void> main() async {
   Get.put(NotificationRepository(api), permanent: true);
   final locationService = Get.put(LocationService(), permanent: true);
   Get.put(
-    DriverTrackingService(Get.find<BookingRepository>(), locationService),
+    DriverTrackingService(
+      Get.find<BookingRepository>(),
+      locationService,
+      api,
+      storage,
+    ),
     permanent: true,
   );
 
@@ -55,8 +60,12 @@ Future<void> main() async {
 
   final settings = Get.put(SettingsService(storage).init(), permanent: true);
 
-  // On a 401 anywhere, reset to login.
-  api.onUnauthorized = () => Get.offAllNamed(Routes.login);
+  // On a 401 anywhere, reset to login (and drop any background tracking
+  // session that would otherwise keep posting with the dead token).
+  api.onUnauthorized = () {
+    Get.find<DriverTrackingService>().stop();
+    Get.offAllNamed(Routes.login);
+  };
 
   // Every launch starts on the animated splash, which then routes to
   // Welcome (first run) / Home (logged in) / Login.

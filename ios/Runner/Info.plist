@@ -75,9 +75,17 @@
 			<string>https</string>
 			<string>comgooglemaps</string>
 		</array>
-		<!-- Profile photo upload -->
 		<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Veha Driver uses your location to show the pickup route and active trip destination.</string>
+		<!-- Live trip tracking keeps posting the driver's position while the app
+		     is in the background (screen locked / navigating in Google Maps). -->
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>Veha Driver uses your location to share your live position with dispatch and the passenger during a trip.</string>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>location</string>
+		</array>
+		<!-- Profile photo upload -->
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Allow access to your photos to set your profile picture.</string>
 		<key>NSCameraUsageDescription</key>

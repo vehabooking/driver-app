@@ -92,8 +92,10 @@ class AuthService extends GetxService {
   }
 
   Future<void> logout() async {
+    // Tear down the background tracking session (and its copy of the token)
+    // before the session itself is revoked.
     if (Get.isRegistered<DriverTrackingService>()) {
-      Get.find<DriverTrackingService>().stop();
+      await Get.find<DriverTrackingService>().stop();
     }
 
     try {

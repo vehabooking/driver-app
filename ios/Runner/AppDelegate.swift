@@ -1,6 +1,7 @@
 import Flutter
 import GoogleMaps
 import UIKit
+import flutter_foreground_task
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -12,6 +13,12 @@ import UIKit
        !mapsKey.isEmpty,
        !mapsKey.contains("$(") {
       GMSServices.provideAPIKey(mapsKey)
+    }
+
+    // Live trip tracking runs in a separate Flutter engine; it needs the same
+    // plugins (geolocator) registered to read GPS in the background.
+    SwiftFlutterForegroundTaskPlugin.setPluginRegistrantCallback { registry in
+      GeneratedPluginRegistrant.register(with: registry)
     }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)

@@ -1,3 +1,4 @@
+import '../../core/location/pickup_arrival_gate.dart';
 import 'place.dart';
 import 'trip_staleness.dart';
 
@@ -31,6 +32,7 @@ class BookingDetail {
     this.allowedActions = const [],
     this.startLocked = false,
     this.startAvailableAtRaw,
+    this.arrivalRadiusMeters = PickupArrivalGate.defaultRadiusMeters,
     this.needsResolution = false,
     this.resolutionAvailableAt,
     this.lateResolvedAt,
@@ -98,6 +100,10 @@ class BookingDetail {
 
   /// Raw ISO-8601 `start_available_at` from the API.
   final String? startAvailableAtRaw;
+
+  /// How close (m) the driver must be to the pickup to mark Arrived. Set
+  /// server-side (`taxi.driver_arrival_gate`); 0 disables the gate.
+  final double arrivalRadiusMeters;
   final bool needsResolution;
   final String? resolutionAvailableAt;
   final String? lateResolvedAt;
@@ -280,6 +286,9 @@ class BookingDetail {
       allowedActions: _stringList(json['allowed_actions']),
       startLocked: json['start_locked'] == true,
       startAvailableAtRaw: _string(json['start_available_at']),
+      arrivalRadiusMeters:
+          _toInt(json['arrival_radius_meters'])?.toDouble() ??
+          PickupArrivalGate.defaultRadiusMeters,
       needsResolution: json['needs_resolution'] == true,
       resolutionAvailableAt: _string(json['resolution_available_at']),
       lateResolvedAt: _string(json['late_resolved_at']),

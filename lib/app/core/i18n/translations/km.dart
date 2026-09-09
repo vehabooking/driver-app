@@ -209,6 +209,8 @@ const Map<String, String> kmKH = {
   'swipe_to_drop': 'អូសដើម្បីដាក់ចុះ',
   'started_done': 'បានចាប់ផ្តើមដំណើរ។',
   'arrived_done': 'បានកំណត់ថាមកដល់។',
+  'arrived_too_far':
+      'អ្នកនៅចម្ងាយ @distance ពីទីតាំងទទួល។ សូមទៅដល់ក្នុងរង្វង់ @radius ទើបអាចចុចមកដល់បាន។',
   'met_done': 'អ្នកដំណើរនៅលើរថយន្ត។',
   'step_start': 'ចាប់ផ្តើម',
   'step_arrived': 'មកដល់',
@@ -336,6 +338,8 @@ const Map<String, String> kmKH = {
   'pickup_arrival_zone_message': 'សូមបញ្ជាក់ក្រោយពេលអ្នកឈប់ដោយសុវត្ថិភាព។',
   'tracking_action_required':
       'ការតាមដានដំណើរបានបញ្ឈប់។ ប្រសិនបើអ្នកបានជូនអ្នកដំណើរដល់គោលដៅហើយ សូមបញ្ចប់ដំណើរ។',
+  'tracking_background_unavailable':
+      'មិនអាចចាប់ផ្តើមការតាមដានក្នុងផ្ទៃខាងក្រោយបានទេ។ សូមបើកកម្មវិធីទុកក្នុងអំឡុងពេលដំណើរ ដើម្បីចែករំលែកទីតាំងផ្ទាល់របស់អ្នក។',
 
   // Actions
   'accept_booking': 'ទទួលការកក់',

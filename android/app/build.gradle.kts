@@ -18,6 +18,13 @@ val localProperties = Properties().apply {
     }
 }
 
+val keystoreProperties = Properties().apply {
+    val keystorePropertiesFile = rootProject.file("key.properties")
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { stream -> load(stream) }
+    }
+}
+
 fun localOrEnv(name: String): String =
     localProperties.getProperty(name)
         ?: providers.gradleProperty(name).orNull
@@ -55,11 +62,27 @@ android {
             localOrEnv("VEHA_GOOGLE_MAPS_ANDROID_KEY")
     }
 
+    // Release signing from android/key.properties (gitignored). Falls back to
+    // the debug key when the file is absent so `flutter run --release` still works.
+    val hasReleaseKey = keystoreProperties.containsKey("storeFile")
+    if (hasReleaseKey) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseKey) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

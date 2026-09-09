@@ -111,8 +111,24 @@ class PushNotificationService extends GetxService {
   }
 
   void _openFromMessage(RemoteMessage message) {
+    // Promo broadcasts (e.g. "new booking — contact your manager") carry no
+    // booking to open; tapping just brings the app up.
+    final screen = message.data['screen']?.toString();
+    if (screen == 'none') {
+      return;
+    }
+    if (screen == 'home') {
+      Get.offAllNamed(Routes.home);
+      return;
+    }
+    if (screen == 'notifications') {
+      Get.toNamed(Routes.notifications);
+      return;
+    }
+
     final uuid = message.data['booking_uuid']?.toString();
     if (uuid == null || uuid.isEmpty) {
+      Get.toNamed(Routes.notifications);
       return;
     }
 

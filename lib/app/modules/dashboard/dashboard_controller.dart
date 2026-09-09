@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:get/get.dart';
@@ -345,24 +346,40 @@ class DashboardController extends GetxController {
     return false;
   }
 
+  /// The dashboard is the source of truth for which trip is in progress: it
+  /// (re)starts the background session for it on every launch/refresh — also
+  /// when the service survived a process restart — and stops a stale session
+  /// when no trip is live any more.
   void _watchNextPickupTracking() {
     final next = summary.value?.nextPickup;
     if (next == null) {
-      _trackingService.stop();
+      unawaited(_trackingService.stop());
       return;
+    }
+
+    final mode = _trackingModeFor(next);
+    if (mode != DriverTrackingMode.live) {
+      unawaited(_trackingService.stopLive());
     }
 
     _trackingService.watch(
       uuid: next.uuid,
       assignmentId: next.assignmentId,
-      mode: _trackingModeForNextAction(next.nextAction),
+      mode: mode,
       onLocationSynced: (location) =>
           _maybeShowNearPickupReminder(next, location),
     );
   }
 
-  DriverTrackingMode _trackingModeForNextAction(String? nextAction) {
-    return switch (nextAction) {
+  DriverTrackingMode _trackingModeFor(BookingListItem next) {
+    final driverStatus = next.driverTripStatus;
+    if (driverStatus == 'start' ||
+        driverStatus == 'arrived_location' ||
+        driverStatus == 'meet_passenger') {
+      return DriverTrackingMode.live;
+    }
+
+    return switch (next.nextAction) {
       'arrived' || 'meet_passenger' || 'complete' => DriverTrackingMode.live,
       'start' => DriverTrackingMode.snapshot,
       _ => DriverTrackingMode.off,
@@ -430,7 +447,8 @@ class DashboardController extends GetxController {
 
   @override
   void onClose() {
-    _trackingService.stop();
+    // Never stop a live background session from here.
+    _trackingService.detach();
     super.onClose();
   }
 }
