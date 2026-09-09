@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:iconsax_plus/iconsax_plus.dart';
 
 import '../../data/models/booking_payment.dart';
 import '../theme/app_colors.dart';
@@ -74,7 +73,8 @@ class _CollectPaymentDialog extends StatefulWidget {
 }
 
 class _CollectPaymentDialogState extends State<_CollectPaymentDialog> {
-  static const _accent = AppColors.assigned;
+  static const _accent = AppColors.primary;
+  static const _ink = AppColors.secondary;
 
   List<PaymentMethod> _methods = const [];
   int? _selectedId;
@@ -143,6 +143,10 @@ class _CollectPaymentDialogState extends State<_CollectPaymentDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final ink = theme.brightness == Brightness.dark
+        ? theme.colorScheme.onSurface
+        : _ink;
+    final note = widget.note?.trim();
 
     return AlertDialog(
       backgroundColor: theme.colorScheme.surface,
@@ -153,7 +157,7 @@ class _CollectPaymentDialogState extends State<_CollectPaymentDialog> {
         AppSpacing.xl,
         AppSpacing.xl,
         AppSpacing.xl,
-        AppSpacing.sm,
+        AppSpacing.md,
       ),
       contentPadding: const EdgeInsets.fromLTRB(
         AppSpacing.xl,
@@ -162,38 +166,76 @@ class _CollectPaymentDialogState extends State<_CollectPaymentDialog> {
         AppSpacing.lg,
       ),
       actionsPadding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
+        AppSpacing.xl,
         0,
-        AppSpacing.md,
-        AppSpacing.md,
+        AppSpacing.xl,
+        AppSpacing.xl,
       ),
+
+      // Everything is centred: a money confirmation reads as one column, and
+      // mixing left-aligned copy with a centred figure looked unfinished.
       title: Text(
         'confirm_complete_title'.tr,
+        textAlign: TextAlign.center,
         style: theme.textTheme.titleMedium?.copyWith(
           fontSize: 17,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.2,
-          color: theme.brightness == Brightness.dark
-              ? theme.colorScheme.onSurface
-              : AppColors.secondary,
+          color: ink,
         ),
       ),
       content: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            _alert(theme),
-            if (widget.note != null && widget.note!.trim().isNotEmpty) ...[
+            _label(theme, 'collect_payment_alert'.tr),
+            const SizedBox(height: 2),
+            Text(
+              widget.amountLabel,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.displaySmall?.copyWith(
+                color: ink,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1,
+                height: 1.05,
+              ),
+            ),
+            if (note != null && note.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.sm),
-              _note(theme, widget.note!.trim()),
+              Text(
+                note,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.3,
+                ),
+              ),
             ],
-            const SizedBox(height: AppSpacing.lg),
-            _methodPicker(theme),
+            if (!_loadingMethods && _methods.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Divider(
+                height: 1,
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              _label(theme, 'payment_method'.tr),
+              const SizedBox(height: AppSpacing.sm),
+              _methodPicker(theme),
+            ],
+            if (_loadingMethods) ...[
+              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(strokeWidth: 2.2),
+              ),
+            ],
             if (_error != null) ...[
               const SizedBox(height: AppSpacing.md),
               Text(
                 _error!,
+                textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.cancelled,
                   fontWeight: FontWeight.w600,
@@ -204,177 +246,110 @@ class _CollectPaymentDialogState extends State<_CollectPaymentDialog> {
           ],
         ),
       ),
+
+      // Equal-width buttons on one row, so neither reads as an afterthought.
       actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.of(context).pop(),
-          style: TextButton.styleFrom(
-            minimumSize: const Size(0, 44),
-            foregroundColor: theme.colorScheme.onSurfaceVariant,
-            textStyle: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          child: Text('cancel'.tr),
-        ),
-        FilledButton(
-          onPressed: _busy ? null : _confirm,
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(96, 44),
-            backgroundColor: _accent,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: _accent.withValues(alpha: 0.55),
-            disabledForegroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          child: _busy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text('confirm'.tr),
-        ),
-      ],
-    );
-  }
-
-  /// Amber "take the money" line with the amount as the loudest thing here.
-  Widget _alert(ThemeData theme) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: _accent.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: _accent.withValues(alpha: 0.28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                IconsaxPlusBold.money_recive,
-                size: 17,
-                color: _accent,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  'collect_payment_alert'.tr,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w700,
-                    height: 1.25,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (widget.amountLabel.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              widget.amountLabel,
-              style: theme.textTheme.displaySmall?.copyWith(
-                color: const Color(0xFF8A5A13),
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.8,
-                height: 1.1,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _note(ThemeData theme, String note) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 2),
-          child: Icon(IconsaxPlusLinear.note_1, size: 14, color: _accent),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: Text(
-            note,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-              height: 1.3,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Method chips. Absent entirely when the lookup came back empty or failed -
-  /// the driver still confirms and the server records cash.
-  Widget _methodPicker(ThemeData theme) {
-    if (_loadingMethods) {
-      return const SizedBox(
-        height: 20,
-        width: 20,
-        child: CircularProgressIndicator(strokeWidth: 2.2),
-      );
-    }
-    if (_methods.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'payment_method'.tr,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
+        Row(
           children: [
-            for (final method in _methods)
-              ChoiceChip(
-                label: Text(method.name),
-                selected: _selectedId == method.id,
-                onSelected: _busy
-                    ? null
-                    : (_) => setState(() => _selectedId = method.id),
-                showCheckmark: false,
-                selectedColor: _accent.withValues(alpha: 0.16),
-                side: BorderSide(
-                  color: _selectedId == method.id
-                      ? _accent
-                      : theme.colorScheme.outlineVariant,
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _busy ? null : () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 48),
+                  foregroundColor: theme.colorScheme.onSurfaceVariant,
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                labelStyle: theme.textTheme.labelLarge?.copyWith(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: _selectedId == method.id
-                      ? const Color(0xFF8A5A13)
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                child: Text('cancel'.tr),
               ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: FilledButton(
+                onPressed: _busy ? null : _confirm,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 48),
+                  backgroundColor: _accent,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: _accent.withValues(alpha: 0.55),
+                  disabledForegroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                child: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text('confirm'.tr),
+              ),
+            ),
           ],
         ),
+      ],
+    );
+  }
+
+  /// Small muted caption above a value or a control.
+  Widget _label(ThemeData theme, String text) => Text(
+    text,
+    textAlign: TextAlign.center,
+    style: theme.textTheme.labelMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+      height: 1.25,
+    ),
+  );
+
+  /// Method chips, centred. Hidden entirely when the lookup came back empty
+  /// or failed - the driver still confirms and the server records cash.
+  Widget _methodPicker(ThemeData theme) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: [
+        for (final method in _methods)
+          ChoiceChip(
+            label: Text(method.name),
+            selected: _selectedId == method.id,
+            onSelected: _busy
+                ? null
+                : (_) => setState(() => _selectedId = method.id),
+            showCheckmark: false,
+            backgroundColor: Colors.transparent,
+            selectedColor: _accent.withValues(alpha: 0.12),
+            side: BorderSide(
+              color: _selectedId == method.id
+                  ? _accent
+                  : theme.colorScheme.outlineVariant,
+            ),
+            labelStyle: theme.textTheme.labelLarge?.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: _selectedId == method.id
+                  ? _accent
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
       ],
     );
   }

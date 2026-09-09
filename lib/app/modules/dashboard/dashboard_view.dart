@@ -537,6 +537,13 @@ class _NextPickupCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _cardHeader(theme),
+              if (next.requiresPaymentCollection) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: CollectPaymentPill(payment: next.payment),
+                ),
+              ],
               const SizedBox(height: AppSpacing.md),
               _routeScheduleGrid(theme),
               if (next.hasDropoff) ...[
@@ -565,7 +572,9 @@ class _NextPickupCard extends StatelessWidget {
               ],
               // The standing arrival rule, shown wherever the driver decides
               // whether to set off.
-              if (!next.needsResolution && next.nextAction != null) ...[
+              if (!next.needsResolution &&
+                  next.nextAction != null &&
+                  next.showsArrivalRule) ...[
                 const SizedBox(height: AppSpacing.md),
                 const ArrivalRuleNote(),
               ],
@@ -647,10 +656,6 @@ class _NextPickupCard extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        if (next.requiresPaymentCollection) ...[
-          Flexible(child: CollectPaymentPill(payment: next.payment)),
-          const SizedBox(width: AppSpacing.sm),
-        ],
         if (next.code != null && next.code!.isNotEmpty)
           Flexible(
             child: Text(

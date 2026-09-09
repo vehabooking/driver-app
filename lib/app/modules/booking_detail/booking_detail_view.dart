@@ -136,8 +136,10 @@ class _StickyFooter extends StatelessWidget {
               compact: true,
             ),
             const SizedBox(height: AppSpacing.md),
-            const ArrivalRuleNote(),
-            const SizedBox(height: AppSpacing.md),
+            if (b.showsArrivalRule) ...[
+              const ArrivalRuleNote(),
+              const SizedBox(height: AppSpacing.md),
+            ],
             if (b.isStartOverdue) ...[
               _StartOverdueNotice(b: b),
               const SizedBox(height: AppSpacing.sm),
@@ -513,10 +515,17 @@ class _Detail extends StatelessWidget {
     const color = AppColors.completed;
     final payment = b.payment;
     final amount = payment.collectedAmountLabel;
+    // Who took it, said as a role: a driver should not have to work out
+    // whether an operator's company name means "not your job".
+    final by = switch (payment.collectedByRole) {
+      'driver' => 'collected_by_you'.tr,
+      'operator' => 'collected_by_operator'.tr,
+      'office' => 'collected_by_office'.tr,
+      _ => payment.collectedBy ?? '',
+    };
     final meta = [
+      if (by.isNotEmpty) by,
       if (payment.collectedAt != null) Formatters.dateTime(payment.collectedAt),
-      if (payment.collectedBy != null && payment.collectedBy!.isNotEmpty)
-        payment.collectedBy!,
     ].where((v) => v.isNotEmpty).join(' · ');
 
     return Container(

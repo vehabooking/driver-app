@@ -16,6 +16,7 @@ class BookingPayment {
     this.note,
     this.collectedAt,
     this.collectedBy,
+    this.collectedByRole,
   });
 
   /// `onboard` | `admin` | `pay_later` | null.
@@ -42,6 +43,10 @@ class BookingPayment {
 
   /// Who recorded the payment. Absent on the list resource.
   final String? collectedBy;
+
+  /// 'driver' | 'operator' | 'office' — lets the app say who took the money
+  /// in words the driver reads instantly, instead of a company name.
+  final String? collectedByRole;
 
   /// Nothing to collect - also what an absent `payment` block parses to.
   static const BookingPayment none = BookingPayment();
@@ -101,6 +106,7 @@ class BookingPayment {
       note: _string(json['note']),
       collectedAt: _string(json['collected_at']),
       collectedBy: _string(json['collected_by']),
+      collectedByRole: _string(json['collected_by_role']),
     );
   }
 

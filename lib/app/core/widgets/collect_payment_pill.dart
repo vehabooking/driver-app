@@ -21,12 +21,15 @@ class CollectPaymentPill extends StatelessWidget {
 
     final theme = Theme.of(context);
     final amount = payment.amountLabel;
-    const color = AppColors.assigned;
+    // Brand teal field with the figure in navy, mirroring the drop-off
+    // confirmation so the pill and the dialog read as the same thing.
+    const color = AppColors.primary;
+    const ink = AppColors.secondary;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.13),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -42,7 +45,9 @@ class CollectPaymentPill extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelSmall?.copyWith(
-                color: color,
+                color: theme.brightness == Brightness.dark
+                    ? theme.colorScheme.onSurface
+                    : ink,
                 fontWeight: FontWeight.w800,
                 fontSize: 10,
                 letterSpacing: 0,

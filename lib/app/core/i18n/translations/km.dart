@@ -370,6 +370,9 @@ const Map<String, String> kmKH = {
   'payment_method': 'វិធីបង់ប្រាក់',
   'confirm': 'បញ្ជាក់',
   'payment_collected': 'បានទទួលប្រាក់រួច',
+  'collected_by_you': 'អ្នកបានទទួល',
+  'collected_by_operator': 'ប្រតិបត្តិករបានទទួល',
+  'collected_by_office': 'ការិយាល័យបានទទួល',
   'payment_note': 'កំណត់សម្គាល់',
 
   // Profile

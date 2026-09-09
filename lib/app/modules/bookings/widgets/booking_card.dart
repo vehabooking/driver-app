@@ -54,6 +54,13 @@ class BookingCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _header(theme),
+                if (booking.requiresPaymentCollection) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: CollectPaymentPill(payment: booking.payment),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.md),
                 _mainGrid(theme),
                 const SizedBox(height: AppSpacing.sm),
@@ -93,10 +100,6 @@ class BookingCard extends StatelessWidget {
             ),
           ),
         ),
-        if (booking.requiresPaymentCollection) ...[
-          const SizedBox(width: AppSpacing.sm),
-          Flexible(child: CollectPaymentPill(payment: booking.payment)),
-        ],
         const SizedBox(width: AppSpacing.sm),
         _statusBadge(theme),
       ],

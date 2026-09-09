@@ -377,6 +377,9 @@ const Map<String, String> enUS = {
   'payment_method': 'Payment method',
   'confirm': 'Confirm',
   'payment_collected': 'Collected',
+  'collected_by_you': 'Collected by you',
+  'collected_by_operator': 'Collected by operator',
+  'collected_by_office': 'Collected by office',
   'payment_note': 'Note',
 
   // Profile

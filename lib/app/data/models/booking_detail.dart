@@ -87,6 +87,14 @@ class BookingDetail {
   final String? status;
   final String? driverPickupStatus;
   final String? driverTripStatus;
+
+  /// The "arrive 15 minutes early" rule only helps while the driver is still
+  /// on their way to the pickup. Once they have arrived — let alone picked the
+  /// passenger up — it is stale advice sitting above the next action.
+  bool get showsArrivalRule =>
+      driverTripStatus == null ||
+      driverTripStatus == 'assigned' ||
+      driverTripStatus == 'start';
   final String? acceptedAt;
   final String? startedAt;
   final String? arrivedAt;
