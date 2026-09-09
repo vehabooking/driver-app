@@ -232,10 +232,10 @@ class _SegmentedTabs extends StatelessWidget {
         height: 42,
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
           border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.42),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
           ),
         ),
         child: Row(
@@ -256,15 +256,6 @@ class _SegmentedTabs extends StatelessWidget {
                     borderRadius: BorderRadius.circular(
                       AppSpacing.radiusXl - 4,
                     ),
-                    boxShadow: selected
-                        ? [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.24),
-                              blurRadius: 14,
-                              offset: const Offset(0, 7),
-                            ),
-                          ]
-                        : null,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -278,7 +269,7 @@ class _SegmentedTabs extends StatelessWidget {
                                 ? Colors.white
                                 : theme.colorScheme.onSurfaceVariant,
                             fontWeight: selected
-                                ? FontWeight.w800
+                                ? FontWeight.w700
                                 : FontWeight.w600,
                           ),
                         ),
