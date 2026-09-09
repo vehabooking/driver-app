@@ -36,6 +36,9 @@ const Map<String, String> enUS = {
   'code_expires_in': 'Expires in @time',
   'resend_in': 'Resend in @seconds s',
   'cancelled': 'Cancelled',
+  'outcome_completed': 'Completed',
+  'outcome_cancelled': 'Cancelled',
+  'outcome_pickup_issue': 'Pickup issue',
   'confirm_sign_out_message':
       'Your account will be free to use on another phone.',
   'version_label': 'Version @version',

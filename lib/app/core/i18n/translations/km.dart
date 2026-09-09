@@ -34,6 +34,9 @@ const Map<String, String> kmKH = {
   'code_expires_in': 'ផុតកំណត់ក្នុង @time',
   'resend_in': 'ផ្ញើឡើងវិញក្នុង @seconds វិ.',
   'cancelled': 'បានលុបចោល',
+  'outcome_completed': 'បានបញ្ចប់',
+  'outcome_cancelled': 'បានលុបចោល',
+  'outcome_pickup_issue': 'បញ្ហាទទួលភ្ញៀវ',
   'confirm_sign_out_message':
       'គណនីរបស់អ្នកនឹងអាចប្រើនៅលើទូរស័ព្ទផ្សេងបាន។',
   'version_label': 'កំណែ @version',

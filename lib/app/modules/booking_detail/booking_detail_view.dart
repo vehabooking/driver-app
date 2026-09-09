@@ -208,6 +208,12 @@ class _Detail extends StatelessWidget {
           AppSpacing.lg,
         ),
         children: [
+          // A finished trip is the first thing the driver should see — the
+          // small chip inside the info card is easy to miss when scrolling.
+          if (_outcome != null) ...[
+            _outcomeBanner(theme, _outcome!),
+            const SizedBox(height: AppSpacing.sm + 2),
+          ],
           _destinationStrip(theme),
           const SizedBox(height: AppSpacing.sm + 2),
           _bookingInfoCard(theme),
@@ -278,6 +284,131 @@ class _Detail extends StatelessWidget {
 
   String get _tripTypeLabel =>
       b.hasReturn ? 'round_trip_badge'.tr : 'one_way'.tr;
+
+  /// How this trip ended, or null while it is still running.
+  ({IconData icon, Color color, String title})? get _outcome {
+    if (b.pickupIssueReason != null || b.stage == 'pickup_issue') {
+      return (
+        icon: IconsaxPlusLinear.info_circle,
+        color: AppColors.pickupIssue,
+        title: 'outcome_pickup_issue'.tr,
+      );
+    }
+
+    if (b.status == 'cancelled' || b.stage == 'cancelled') {
+      return (
+        icon: IconsaxPlusLinear.close_circle,
+        color: AppColors.cancelled,
+        title: 'outcome_cancelled'.tr,
+      );
+    }
+
+    if (b.status == 'completed' ||
+        b.stage == 'completed' ||
+        b.driverTripStatus == 'drop_passenger') {
+      return (
+        icon: IconsaxPlusLinear.tick_circle,
+        color: AppColors.completed,
+        title: 'outcome_completed'.tr,
+      );
+    }
+
+    return null;
+  }
+
+  Widget _outcomeBanner(
+    ThemeData theme,
+    ({IconData icon, Color color, String title}) outcome,
+  ) {
+    final color = outcome.color;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color, Color.lerp(color, Colors.black, 0.22)!],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.35),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        child: Stack(
+          children: [
+            // Soft decorative discs — depth without another asset.
+            Positioned(
+              top: -34,
+              right: -22,
+              child: _outcomeDisc(96, 0.13),
+            ),
+            Positioned(
+              bottom: -40,
+              left: -18,
+              child: _outcomeDisc(84, 0.09),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.xl,
+              ),
+              child: Column(
+                children: [
+                  // Icon in a haloed white disc, so it reads at a glance.
+                  Container(
+                    width: 66,
+                    height: 66,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.18),
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
+                        child: Icon(outcome.icon, color: color, size: 28),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    outcome.title,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
+                      height: 1.1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _outcomeDisc(double size, double alpha) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: Colors.white.withValues(alpha: alpha),
+    ),
+  );
 
   Widget _bookingInfoCard(ThemeData theme) {
     return _SectionCard(
