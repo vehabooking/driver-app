@@ -9,6 +9,7 @@ import 'app/core/location/location_service.dart';
 import 'app/core/network/api_client.dart';
 import 'app/core/routes/app_pages.dart';
 import 'app/core/routes/app_routes.dart';
+import 'app/core/utils/app_snackbar.dart';
 import 'app/core/storage/storage_service.dart';
 import 'app/core/theme/app_theme.dart';
 import 'app/data/repositories/auth_repository.dart';
@@ -65,6 +66,9 @@ Future<void> main() async {
   api.onUnauthorized = () {
     Get.find<DriverTrackingService>().stop();
     Get.offAllNamed(Routes.login);
+    // Tokens never expire server-side, so a 401 means this session was
+    // revoked — almost always because the account signed in on another phone.
+    AppSnackbar.info('session_replaced'.tr);
   };
 
   // Every launch starts on the animated splash, which then routes to

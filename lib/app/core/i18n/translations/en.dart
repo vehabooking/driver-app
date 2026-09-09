@@ -21,10 +21,12 @@ const Map<String, String> enUS = {
   'password': 'Password',
   'password_hint': 'Enter your password',
   'sign_in': 'Sign in',
-  'sign_out': 'Sign out',
-  'confirm_sign_out_title': 'Sign out of your account?',
+  'sign_out': 'Remove account from this device',
+  'session_replaced':
+      'Your session ended. Sign in again, or ask your operator if the account was reset.',
+  'confirm_sign_out_title': 'Remove account from this device?',
   'confirm_sign_out_message':
-      'You’ll need to sign in again to access your trips and driver account.',
+      'This removes your account from this phone. You can then sign in on another device.',
   'version_label': 'Version @version',
   'login_field_required': 'Enter your phone or email',
   'password_required': 'Enter your password',
