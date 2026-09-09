@@ -3,6 +3,7 @@ import '../../core/location/location_service.dart';
 import '../../core/network/api_client.dart';
 import '../models/booking_detail.dart';
 import '../models/booking_list_item.dart';
+import '../models/booking_payment.dart';
 import '../models/dashboard_summary.dart';
 import '../models/trip_route.dart';
 
@@ -84,6 +85,33 @@ class BookingRepository {
       data: _legData(assignmentId),
     ),
   );
+
+  /// Record the money the driver took from the passenger (onboard bookings).
+  /// The amount is not sent: the server settles the full remaining balance, so
+  /// the app can never disagree with it. Omitting [paymentMethodId] records
+  /// cash. Returns the refreshed booking.
+  Future<BookingDetail> collectPayment(
+    String uuid, {
+    int? assignmentId,
+    int? paymentMethodId,
+  }) => _detail(
+    _api.postJson(
+      '$_base/bookings/$uuid/collect-payment',
+      data: {...?_legData(assignmentId), 'payment_method_id': ?paymentMethodId},
+    ),
+  );
+
+  /// Active payment methods offered on the drop confirmation.
+  Future<List<PaymentMethod>> paymentMethods() async {
+    final res = await _api.getJson('$_base/payment-methods');
+    final list = _mapAt(res, 'data')['payment_methods'];
+
+    return (list is List ? list : const [])
+        .whereType<Map>()
+        .map((e) => PaymentMethod.tryFromJson(Map<String, dynamic>.from(e)))
+        .whereType<PaymentMethod>()
+        .toList();
+  }
 
   Future<BookingDetail> resolveLateCompletion(
     String uuid, {

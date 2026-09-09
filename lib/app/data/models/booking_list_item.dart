@@ -1,3 +1,4 @@
+import 'booking_payment.dart';
 import 'place.dart';
 import 'trip_staleness.dart';
 
@@ -50,6 +51,7 @@ class BookingListItem {
     this.allowedActions = const [],
     this.pickupIssueReasonOptions = const [],
     this.pickupIssueNoteMaxLength = 500,
+    this.payment = BookingPayment.none,
   });
 
   final String uuid;
@@ -100,6 +102,13 @@ class BookingListItem {
   final List<String> allowedActions;
   final List<String> pickupIssueReasonOptions;
   final int pickupIssueNoteMaxLength;
+
+  /// Cash the driver must take from the passenger (onboard bookings). The list
+  /// resource omits `collected_by`; [BookingPayment.none] when absent.
+  final BookingPayment payment;
+
+  /// Onboard cash is still outstanding on this trip.
+  bool get requiresPaymentCollection => payment.requiresCollection;
 
   String get pickupLabel {
     if (pickupLocationName != null && pickupLocationName!.isNotEmpty) {
@@ -178,8 +187,8 @@ class BookingListItem {
       isReturnLeg ? linkedOutboundDatetime : linkedReturnDatetime;
 
   /// The forward trip step to act on (start → arrived → meet_passenger →
-  /// complete), ignoring the secondary pickup-issue action.
-  /// Null when there's nothing to advance.
+  /// complete), ignoring the secondary pickup-issue action. Null when there's
+  /// nothing to advance.
   String? get nextAction {
     for (final a in allowedActions) {
       if (a != 'report_pickup_issue') return a;
@@ -309,6 +318,7 @@ class BookingListItem {
       pickupIssueNoteMaxLength:
           _toInt(json['pickup_issue_note_max_length']) ?? 500,
       allowedActions: _stringList(json['allowed_actions']),
+      payment: BookingPayment.fromJson(_map(json['payment'])),
     );
   }
 

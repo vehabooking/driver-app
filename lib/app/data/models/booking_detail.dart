@@ -1,4 +1,5 @@
 import '../../core/location/pickup_arrival_gate.dart';
+import 'booking_payment.dart';
 import 'place.dart';
 import 'trip_staleness.dart';
 
@@ -43,6 +44,7 @@ class BookingDetail {
     this.customerEmail,
     this.pickup = const Place(),
     this.dropoff = const Place(),
+    this.payment = BookingPayment.none,
     this.routeOrigin,
     this.routeDestination,
     this.departureDatetime,
@@ -116,6 +118,10 @@ class BookingDetail {
 
   final Place pickup;
   final Place dropoff;
+
+  /// Cash the driver must take from the passenger (onboard bookings).
+  /// [BookingPayment.none] when the backend sends no `payment` block.
+  final BookingPayment payment;
   final String? routeOrigin;
   final String? routeDestination;
 
@@ -155,6 +161,9 @@ class BookingDetail {
   bool get can => allowedActions.isNotEmpty;
   bool allows(String action) => allowedActions.contains(action);
   bool get canReportPickupIssue => allows('report_pickup_issue');
+
+  /// Onboard cash is still outstanding, so the trip cannot be completed yet.
+  bool get requiresPaymentCollection => payment.requiresCollection;
   bool get isClosed =>
       status == 'completed' ||
       status == 'cancelled' ||
@@ -299,6 +308,7 @@ class BookingDetail {
       customerEmail: _string(customer['email']),
       pickup: Place.fromJson(_map(json['pickup'])),
       dropoff: Place.fromJson(_map(json['dropoff'])),
+      payment: BookingPayment.fromJson(_map(json['payment'])),
       routeOrigin: _string(routeSummary['origin']),
       routeDestination: _string(routeSummary['destination']),
       departureDatetime: _string(json['departure_datetime']),

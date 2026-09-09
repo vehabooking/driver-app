@@ -10,6 +10,8 @@ import '../../core/network/api_exception.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/utils/app_snackbar.dart';
 import '../../core/utils/external_launcher.dart';
+import '../../core/widgets/collect_payment_sheet.dart';
+import '../../core/widgets/confirm_dialog.dart';
 import '../../data/models/booking_detail.dart';
 import '../../data/repositories/booking_repository.dart';
 
@@ -109,7 +111,7 @@ class BookingDetailController extends GetxController {
   Future<void> arrived() async {
     if (!await _ensureAtPickup()) return;
 
-    return _act(
+    await _act(
       () => _repo.arrived(uuid, assignmentId: _currentAssignmentId),
       'arrived_done'.tr,
     );
@@ -166,26 +168,103 @@ class BookingDetailController extends GetxController {
     return true;
   }
 
-  Future<void> meetPassenger() => _act(
-    () => _repo.meetPassenger(uuid, assignmentId: _currentAssignmentId),
-    'met_done'.tr,
-  );
+  Future<void> meetPassenger() async {
+    await _act(
+      () => _repo.meetPassenger(uuid, assignmentId: _currentAssignmentId),
+      'met_done'.tr,
+    );
+  }
 
-  Future<void> complete() => _act(
+  /// Drop the passenger - always one confirmation first.
+  ///
+  /// Plain bookings get the Yes/No prompt. Onboard bookings get the same
+  /// moment with the money on it, and confirming records the payment before
+  /// completing. The server's own guard (`PAYMENT_NOT_COLLECTED`) falls back
+  /// to that same dialog rather than a raw error.
+  Future<void> complete() async {
+    if (isActing.value) return;
+
+    if (booking.value?.requiresPaymentCollection == true) {
+      await _collectAndComplete();
+      return;
+    }
+
+    if (!await confirmStepAction('complete')) return;
+
+    final error = await _completeNow(reportErrors: false);
+    if (error == null) return;
+
+    if (error.errorCode == 'PAYMENT_NOT_COLLECTED') {
+      await _collectAndComplete();
+      return;
+    }
+
+    AppSnackbar.error(error.message);
+  }
+
+  Future<ApiException?> _completeNow({bool reportErrors = true}) => _act(
     () => _repo.complete(uuid, assignmentId: _currentAssignmentId),
     'completed_done'.tr,
     syncBefore: true,
     syncAfter: false,
+    reportErrors: reportErrors,
   );
 
-  Future<void> resolveLateCompletion() {
+  /// The onboard drop: confirm + take the money + complete, in one dialog.
+  Future<void> _collectAndComplete() async {
+    final payment = booking.value?.payment;
+
+    await showCollectPaymentDialog(
+      amountLabel: payment?.amountLabel ?? '',
+      note: payment?.note,
+      loadMethods: _repo.paymentMethods,
+      onConfirm: (paymentMethodId) async {
+        // 1. Record the money. A failure stops here: the trip stays open.
+        final failure = await _recordPayment(paymentMethodId);
+        if (failure != null) return failure;
+
+        // 2. Close the trip.
+        final error = await _completeNow(reportErrors: false);
+        return error?.message;
+      },
+    );
+  }
+
+  /// Records the collected payment. Null on success, else a message for the
+  /// dialog to show.
+  Future<String?> _recordPayment(int? paymentMethodId) async {
+    isActing.value = true;
+    try {
+      booking.value = await _repo.collectPayment(
+        uuid,
+        assignmentId: _currentAssignmentId,
+        paymentMethodId: paymentMethodId,
+      );
+      return null;
+    } on ApiException catch (e) {
+      // Someone else (vendor/admin) already recorded it, or the booking is not
+      // an onboard one after all - either way there is nothing left to collect,
+      // so let the completion carry on.
+      if (e.errorCode == 'ALREADY_PAID' ||
+          e.errorCode == 'PAYMENT_NOT_REQUIRED') {
+        return null;
+      }
+      return e.message;
+    } catch (_) {
+      return 'error_generic'.tr;
+    } finally {
+      isActing.value = false;
+    }
+  }
+
+  Future<void> resolveLateCompletion() async {
     final assignmentId = _currentAssignmentId;
     if (assignmentId == null) {
       AppSnackbar.error('error_generic'.tr);
-      return Future.value();
+      return;
     }
 
-    return _act(
+    await _act(
       () => _repo.resolveLateCompletion(uuid, assignmentId: assignmentId),
       'old_trip_resolved'.tr,
       syncAfter: false,
@@ -193,17 +272,19 @@ class BookingDetailController extends GetxController {
   }
 
   /// Pickup issue → terminal outcome for this exact assignment leg.
-  Future<void> reportPickupIssue(String reason, String? note) => _act(
-    () => _repo.reportPickupIssue(
-      uuid,
-      assignmentId: _currentAssignmentId,
-      reason: reason,
-      note: note,
-    ),
-    'pickup_issue_reported'.tr,
-    syncBefore: true,
-    syncAfter: false,
-  );
+  Future<void> reportPickupIssue(String reason, String? note) async {
+    await _act(
+      () => _repo.reportPickupIssue(
+        uuid,
+        assignmentId: _currentAssignmentId,
+        reason: reason,
+        note: note,
+      ),
+      'pickup_issue_reported'.tr,
+      syncBefore: true,
+      syncAfter: false,
+    );
+  }
 
   /// Run the action key from `allowed_actions`.
   Future<void> runAction(String action) {
@@ -223,13 +304,17 @@ class BookingDetailController extends GetxController {
     }
   }
 
-  Future<void> _act(
+  /// Runs [action] with the shared acting/loading plumbing. Returns null on
+  /// success, or the failure - already shown to the driver unless
+  /// [reportErrors] is false, which lets the caller recover from it instead.
+  Future<ApiException?> _act(
     Future<BookingDetail> Function() action,
     String successMsg, {
     bool syncBefore = false,
     bool syncAfter = true,
+    bool reportErrors = true,
   }) async {
-    if (isActing.value) return;
+    if (isActing.value) return null;
     isActing.value = true;
     try {
       if (syncBefore) {
@@ -241,10 +326,14 @@ class BookingDetailController extends GetxController {
         unawaited(refreshDriverLocation(showErrors: false));
       }
       AppSnackbar.success(successMsg);
+      return null;
     } on ApiException catch (e) {
-      AppSnackbar.error(e.message);
+      if (reportErrors) AppSnackbar.error(e.message);
+      return e;
     } catch (_) {
-      AppSnackbar.error('error_generic'.tr);
+      final e = ApiException(message: 'error_generic'.tr);
+      if (reportErrors) AppSnackbar.error(e.message);
+      return e;
     } finally {
       isActing.value = false;
     }

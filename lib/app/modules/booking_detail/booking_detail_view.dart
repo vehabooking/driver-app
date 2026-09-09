@@ -215,6 +215,15 @@ class _Detail extends StatelessWidget {
             _outcomeBanner(theme, _outcome!),
             const SizedBox(height: AppSpacing.sm + 2),
           ],
+
+          // Onboard cash: impossible to miss while it is owed, a quiet
+          // receipt line once it is in, one neutral line when the money is
+          // somebody else's problem.
+          if (_paymentSection(theme) case final section?) ...[
+            section,
+            const SizedBox(height: AppSpacing.sm + 2),
+          ],
+
           _destinationStrip(theme),
           const SizedBox(height: AppSpacing.sm + 2),
           _bookingInfoCard(theme),
@@ -351,6 +360,215 @@ class _Detail extends StatelessWidget {
                 letterSpacing: -0.2,
                 height: 1.1,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Only onboard bookings concern the driver: cash still to take, or cash
+  /// already taken. Admin- and pay-later-collected money is somebody else's
+  /// job and is deliberately not shown here at all.
+  Widget? _paymentSection(ThemeData theme) {
+    final payment = b.payment;
+    if (payment.requiresCollection) return _collectPaymentCard(theme);
+    if (payment.isCollected) return _paymentCollectedCard(theme);
+    return null;
+  }
+
+  /// Amber "take the cash" card, shown while the passenger still owes the
+  /// driver. The amount is the loudest thing on the screen on purpose.
+  Widget _collectPaymentCard(ThemeData theme) {
+    const color = AppColors.assigned;
+    final payment = b.payment;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color.withValues(alpha: 0.22)),
+                ),
+                child: const Icon(
+                  IconsaxPlusBold.money_recive,
+                  size: 21,
+                  color: color,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'collect_from_passenger'.tr,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        letterSpacing: 0,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      payment.amountLabel,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: const Color(0xFF8A5A13),
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // Dispatch can override the plain amount ("balance only"), so the
+          // note sits right under it rather than in the info card below.
+          if (payment.hasNote) ...[
+            const SizedBox(height: AppSpacing.sm + 2),
+            _paymentNote(theme, payment.note!.trim()),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Dispatch instruction attached to the cash.
+  Widget _paymentNote(ThemeData theme, String note) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: AppColors.assigned.withValues(alpha: 0.20)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(
+              IconsaxPlusLinear.note_1,
+              size: 14,
+              color: AppColors.assigned,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'payment_note'.tr.toUpperCase(),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 8.5,
+                    letterSpacing: 0.35,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  note,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.secondary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11.5,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Green receipt once the cash has been recorded: amount, when, and who
+  /// entered it when the backend says.
+  Widget _paymentCollectedCard(ThemeData theme) {
+    const color = AppColors.completed;
+    final payment = b.payment;
+    final amount = payment.collectedAmountLabel;
+    final meta = [
+      if (payment.collectedAt != null) Formatters.dateTime(payment.collectedAt),
+      if (payment.collectedBy != null && payment.collectedBy!.isNotEmpty)
+        payment.collectedBy!,
+    ].where((v) => v.isNotEmpty).join(' · ');
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm + 2,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(IconsaxPlusBold.money_tick, size: 17, color: color),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  amount.isEmpty
+                      ? 'payment_collected'.tr
+                      : '${'payment_collected'.tr} · $amount',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: const Color(0xFF0B6B4F),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12.5,
+                    letterSpacing: 0,
+                  ),
+                ),
+                if (meta.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    meta,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 10.5,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -1552,7 +1770,8 @@ class _ActionBar extends StatelessWidget {
     }
 
     return Obx(() {
-      // Final step is a deliberate swipe.
+      // Final step is a deliberate swipe, and the confirmation it opens is
+      // where onboard money is taken - there is no separate collect button.
       if (b.allows('complete')) {
         return SwipeToConfirm(
           label: 'swipe_to_drop'.tr,

@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/widgets/collect_payment_pill.dart';
 import '../../core/widgets/confirm_dialog.dart';
 import '../../core/widgets/arrival_rule_note.dart';
 import '../../core/widgets/pickup_issue_sheet.dart';
@@ -645,20 +646,25 @@ class _NextPickupCard extends StatelessWidget {
             ],
           ),
         ),
-        if (next.code != null && next.code!.isNotEmpty) ...[
-          const Spacer(),
-          Text(
-            next.code!,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: AppColors.secondary,
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
-              letterSpacing: 0,
+        const Spacer(),
+        if (next.requiresPaymentCollection) ...[
+          Flexible(child: CollectPaymentPill(payment: next.payment)),
+          const SizedBox(width: AppSpacing.sm),
+        ],
+        if (next.code != null && next.code!.isNotEmpty)
+          Flexible(
+            child: Text(
+              next.code!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: AppColors.secondary,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+                letterSpacing: 0,
+              ),
             ),
           ),
-        ],
       ],
     );
   }

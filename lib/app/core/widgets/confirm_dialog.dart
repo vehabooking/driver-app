@@ -111,19 +111,21 @@ Future<bool> showConfirmDialog({
 }
 
 /// Confirmation prompt for a trip step action (`start`, `arrived`,
-/// `meet_passenger`).
+/// `meet_passenger`, `complete`).
 ///
 /// Returns `true` when the driver confirms. Unknown actions return `true`
 /// unprompted rather than silently blocking the trip - a step we have no copy
 /// for should still work.
 ///
-/// The final `complete` step is deliberately absent: it uses a swipe control,
-/// which is already an explicit confirmation.
+/// `complete` is the drop swipe: one plain confirmation. Onboard bookings take
+/// the money on this same moment and use the richer dialog in
+/// `collect_payment_sheet.dart` instead.
 Future<bool> confirmStepAction(String action) {
   final (String title, String message) = switch (action) {
     'start' => ('confirm_start_title'.tr, 'confirm_start_message'.tr),
     'arrived' => ('confirm_arrived_title'.tr, 'confirm_arrived_message'.tr),
     'meet_passenger' => ('confirm_meet_title'.tr, 'confirm_meet_message'.tr),
+    'complete' => ('confirm_complete_title'.tr, 'confirm_complete_message'.tr),
     _ => ('', ''),
   };
 

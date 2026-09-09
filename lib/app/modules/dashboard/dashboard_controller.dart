@@ -10,6 +10,8 @@ import '../../core/network/api_exception.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/utils/app_snackbar.dart';
 import '../../core/utils/external_launcher.dart';
+import '../../core/widgets/collect_payment_sheet.dart';
+import '../../core/widgets/confirm_dialog.dart';
 import '../../data/models/auth_user.dart';
 import '../../data/models/booking_detail.dart';
 import '../../data/models/booking_list_item.dart';
@@ -203,6 +205,9 @@ class DashboardController extends GetxController {
   /// complete) straight from the Home card, then refresh the dashboard. A
   /// successful start continues directly to the live route-to-pickup map.
   Future<void> runNextAction(String action) async {
+    // The drop has its own confirmation (and, onboard, the money on it).
+    if (action == 'complete') return completeNextPickup();
+
     final next = summary.value?.nextPickup;
     if (next == null || isActing.value) return;
 
@@ -224,13 +229,6 @@ class DashboardController extends GetxController {
           break;
         case 'meet_passenger':
           await _bookingRepo.meetPassenger(
-            next.uuid,
-            assignmentId: next.assignmentId,
-          );
-          break;
-        case 'complete':
-          await _syncNextPickupLocation();
-          await _bookingRepo.complete(
             next.uuid,
             assignmentId: next.assignmentId,
           );
@@ -266,6 +264,97 @@ class DashboardController extends GetxController {
       AppSnackbar.error(e.message);
     } catch (_) {
       AppSnackbar.error('error_generic'.tr);
+    } finally {
+      isActing.value = false;
+    }
+  }
+
+  /// Drop the passenger straight from the Home card - always one confirmation
+  /// first. Onboard bookings get the money on that same dialog, exactly like
+  /// the detail screen and the live map.
+  Future<void> completeNextPickup() async {
+    final next = summary.value?.nextPickup;
+    if (next == null || isActing.value) return;
+
+    if (next.requiresPaymentCollection) {
+      await _collectAndComplete(next);
+      return;
+    }
+
+    if (!await confirmStepAction('complete')) return;
+
+    final error = await _completeNow(next);
+    if (error == null) return;
+
+    if (error.errorCode == 'PAYMENT_NOT_COLLECTED') {
+      await _collectAndComplete(next);
+      return;
+    }
+
+    AppSnackbar.error(error.message);
+  }
+
+  /// The onboard drop: confirm + take the money + complete, in one dialog.
+  Future<void> _collectAndComplete(BookingListItem next) async {
+    await showCollectPaymentDialog(
+      amountLabel: next.payment.amountLabel,
+      note: next.payment.note,
+      loadMethods: _bookingRepo.paymentMethods,
+      onConfirm: (paymentMethodId) async {
+        // 1. Record the money. A failure stops here: the trip stays open.
+        final failure = await _recordPayment(next, paymentMethodId);
+        if (failure != null) return failure;
+
+        // 2. Close the trip.
+        final error = await _completeNow(next);
+        return error?.message;
+      },
+    );
+  }
+
+  /// Posts the completion. Returns the failure instead of reporting it, so the
+  /// caller can recover from it.
+  Future<ApiException?> _completeNow(BookingListItem next) async {
+    if (isActing.value) return null;
+    isActing.value = true;
+    try {
+      await _syncNextPickupLocation();
+      await _bookingRepo.complete(next.uuid, assignmentId: next.assignmentId);
+      await load();
+      return null;
+    } on ApiException catch (e) {
+      return e;
+    } catch (_) {
+      return ApiException(message: 'error_generic'.tr);
+    } finally {
+      isActing.value = false;
+    }
+  }
+
+  /// Records the collected payment. Null on success, else a message for the
+  /// dialog to show.
+  Future<String?> _recordPayment(
+    BookingListItem next,
+    int? paymentMethodId,
+  ) async {
+    isActing.value = true;
+    try {
+      await _bookingRepo.collectPayment(
+        next.uuid,
+        assignmentId: next.assignmentId,
+        paymentMethodId: paymentMethodId,
+      );
+      return null;
+    } on ApiException catch (e) {
+      // Vendor or admin already recorded it, or this is not an onboard booking
+      // after all - either way there is nothing left to collect.
+      if (e.errorCode == 'ALREADY_PAID' ||
+          e.errorCode == 'PAYMENT_NOT_REQUIRED') {
+        return null;
+      }
+      return e.message;
+    } catch (_) {
+      return 'error_generic'.tr;
     } finally {
       isActing.value = false;
     }

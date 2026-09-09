@@ -4,6 +4,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/collect_payment_pill.dart';
 import '../../../core/widgets/trip_step_tracker.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/booking_list_item.dart';
@@ -92,6 +93,10 @@ class BookingCard extends StatelessWidget {
             ),
           ),
         ),
+        if (booking.requiresPaymentCollection) ...[
+          const SizedBox(width: AppSpacing.sm),
+          Flexible(child: CollectPaymentPill(payment: booking.payment)),
+        ],
         const SizedBox(width: AppSpacing.sm),
         _statusBadge(theme),
       ],

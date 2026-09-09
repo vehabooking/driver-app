@@ -370,6 +370,15 @@ const Map<String, String> enUS = {
   'pickup_done': 'Pickup confirmed.',
   'completed_done': 'Trip completed.',
 
+  // Onboard cash: the passenger pays the driver before the trip is completed.
+  'collect_short': 'Collect',
+  'collect_from_passenger': 'Collect from passenger',
+  'collect_payment_alert': 'Take the payment from the passenger.',
+  'payment_method': 'Payment method',
+  'confirm': 'Confirm',
+  'payment_collected': 'Collected',
+  'payment_note': 'Note',
+
   // Profile
   'profile_title': 'Profile',
   'language': 'Language',
@@ -444,6 +453,8 @@ const Map<String, String> enUS = {
   'confirm_meet_title': 'Met the passenger?',
   'confirm_meet_message':
       'Confirm you have met the passenger and are ready to begin the trip.',
+  'confirm_complete_title': 'Drop off the passenger?',
+  'confirm_complete_message': 'This ends the trip.',
   'confirm_late_completion_title': 'Complete this unfinished trip?',
   'confirm_late_completion_message':
       'Only confirm if you transported the passenger and the trip really finished. This will close the old trip and record it as completed late.',

@@ -16,6 +16,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/app_snackbar.dart';
 import '../../core/utils/external_launcher.dart';
 import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/collect_payment_sheet.dart';
 import '../../core/widgets/confirm_dialog.dart';
 import '../../core/widgets/step_action_button.dart';
 import '../../core/widgets/swipe_to_confirm.dart';
@@ -210,8 +211,103 @@ class _TripMapViewState extends State<TripMapView> {
     final action = _mapAction;
     if (action == null || _isActing) return;
     if (action == 'arrived' && !await _ensureAtPickup()) return;
+
+    if (action == 'complete') {
+      await _completeTrip();
+      return;
+    }
+
     if (!await confirmStepAction(action)) return;
 
+    final error = await _performMapAction(action);
+    if (error != null) AppSnackbar.error(error.message);
+  }
+
+  /// Drop the passenger - always one confirmation first. Onboard bookings get
+  /// the money on that same dialog; everything else gets the plain Yes/No.
+  Future<void> _completeTrip() async {
+    if (_booking?.requiresPaymentCollection == true) {
+      await _collectAndComplete();
+      return;
+    }
+
+    if (!await confirmStepAction('complete')) return;
+
+    final error = await _performMapAction('complete');
+    if (error == null) {
+      _leaveAfterCompletion();
+      return;
+    }
+
+    // Server-side guard: the passenger's money is still outstanding. Same
+    // dialog, then finish the trip.
+    if (error.errorCode == 'PAYMENT_NOT_COLLECTED') {
+      await _collectAndComplete();
+      return;
+    }
+
+    AppSnackbar.error(error.message);
+  }
+
+  /// The onboard drop: confirm + take the money + complete, in one dialog.
+  Future<void> _collectAndComplete() async {
+    final payment = _booking?.payment;
+
+    final result = await showCollectPaymentDialog(
+      amountLabel: payment?.amountLabel ?? '',
+      note: payment?.note,
+      loadMethods: Get.find<BookingRepository>().paymentMethods,
+      context: mounted ? context : null,
+      onConfirm: (paymentMethodId) async {
+        // 1. Record the money. A failure stops here: the trip stays open.
+        final failure = await _recordPayment(paymentMethodId);
+        if (failure != null) return failure;
+
+        // 2. Close the trip.
+        final error = await _performMapAction('complete');
+        return error?.message;
+      },
+    );
+
+    // Leaving happens after the dialog is gone, never underneath it.
+    if (result != null) _leaveAfterCompletion();
+  }
+
+  /// Records the collected payment. Null on success, else a message for the
+  /// dialog to show.
+  Future<String?> _recordPayment(int? paymentMethodId) async {
+    if (mounted) setState(() => _isActing = true);
+    try {
+      final booking = await Get.find<BookingRepository>().collectPayment(
+        args.uuid,
+        assignmentId: args.assignmentId,
+        paymentMethodId: paymentMethodId,
+      );
+      if (mounted) setState(() => _booking = booking);
+      return null;
+    } on ApiException catch (error) {
+      // Vendor or admin already recorded it, or this is not an onboard
+      // booking after all - either way there is nothing left to collect, so
+      // let the completion carry on.
+      if (error.errorCode == 'ALREADY_PAID' ||
+          error.errorCode == 'PAYMENT_NOT_REQUIRED') {
+        return null;
+      }
+      return error.message;
+    } catch (_) {
+      return 'error_generic'.tr;
+    } finally {
+      if (mounted) setState(() => _isActing = false);
+    }
+  }
+
+  void _leaveAfterCompletion() {
+    if (mounted) Get.back(result: true);
+  }
+
+  /// Posts one trip step. Returns the failure instead of reporting it, so the
+  /// caller can recover (e.g. collect the cash and retry).
+  Future<ApiException?> _performMapAction(String action) async {
     setState(() => _isActing = true);
     try {
       final repo = Get.find<BookingRepository>();
@@ -246,7 +342,7 @@ class _TripMapViewState extends State<TripMapView> {
         ),
         _ => throw StateError('Unsupported map action: $action'),
       };
-      if (!mounted) return;
+      if (!mounted) return null;
       setState(() {
         _booking = booking;
         if (wasNavigatingToDropoff != _navigateToDropoff) {
@@ -265,18 +361,18 @@ class _TripMapViewState extends State<TripMapView> {
       };
       if (message.isNotEmpty) AppSnackbar.success(message);
 
-      if (action == 'complete') {
-        Get.back(result: true);
-        return;
-      }
+      // Leaving the map is the caller's job: a confirmation dialog may still
+      // be on top of this screen, and Get.back() would only close that.
+      if (action == 'complete') return null;
 
       if (wasNavigatingToDropoff != _navigateToDropoff) {
         unawaited(_reloadRouteAfterStepChange());
       }
+      return null;
     } on ApiException catch (error) {
-      AppSnackbar.error(error.message);
+      return error;
     } catch (_) {
-      AppSnackbar.error('error_generic'.tr);
+      return ApiException(message: 'error_generic'.tr);
     } finally {
       if (mounted) setState(() => _isActing = false);
     }
@@ -820,12 +916,7 @@ class _TripMapViewState extends State<TripMapView> {
   }
 
   /// Point-to-segment distance on a local flat projection (fine at city scale).
-  double _distanceToSegmentMeters(
-    double lat,
-    double lng,
-    LatLng a,
-    LatLng b,
-  ) {
+  double _distanceToSegmentMeters(double lat, double lng, LatLng a, LatLng b) {
     final cosLat = math.cos(lat * math.pi / 180);
     // metres per degree
     const mLat = 111320.0;

@@ -37,8 +37,7 @@ const Map<String, String> kmKH = {
   'outcome_completed': 'បានបញ្ចប់',
   'outcome_cancelled': 'បានលុបចោល',
   'outcome_pickup_issue': 'បញ្ហាទទួលភ្ញៀវ',
-  'confirm_sign_out_message':
-      'គណនីរបស់អ្នកនឹងអាចប្រើនៅលើទូរស័ព្ទផ្សេងបាន។',
+  'confirm_sign_out_message': 'គណនីរបស់អ្នកនឹងអាចប្រើនៅលើទូរស័ព្ទផ្សេងបាន។',
   'version_label': 'កំណែ @version',
   'login_field_required': 'សូមបញ្ចូលលេខទូរស័ព្ទ ឬ អ៊ីមែល',
   'password_required': 'សូមបញ្ចូលពាក្យសម្ងាត់',
@@ -364,6 +363,15 @@ const Map<String, String> kmKH = {
   'pickup_done': 'បានបញ្ជាក់ការទទួល។',
   'completed_done': 'បានបញ្ចប់ដំណើរ។',
 
+  // Onboard cash: the passenger pays the driver before the trip is completed.
+  'collect_short': 'ទទួលប្រាក់',
+  'collect_from_passenger': 'ទទួលប្រាក់ពីអ្នកដំណើរ',
+  'collect_payment_alert': 'ត្រូវទទួលប្រាក់ពីអ្នកដំណើរ',
+  'payment_method': 'វិធីបង់ប្រាក់',
+  'confirm': 'បញ្ជាក់',
+  'payment_collected': 'បានទទួលប្រាក់រួច',
+  'payment_note': 'កំណត់សម្គាល់',
+
   // Profile
   'profile_title': 'គណនី',
   'language': 'ភាសា',
@@ -437,6 +445,8 @@ const Map<String, String> kmKH = {
   'confirm_meet_title': 'បានជួបភ្ញៀវ?',
   'confirm_meet_message':
       'បញ្ជាក់ថាអ្នកបានជួបភ្ញៀវ ហើយត្រៀមខ្លួនចាប់ផ្តើមដំណើរ។',
+  'confirm_complete_title': 'ដាក់អ្នកដំណើរចុះ?',
+  'confirm_complete_message': 'ដំណើរនឹងបញ្ចប់។',
   'confirm_late_completion_title': 'បញ្ចប់ដំណើរចាស់នេះ?',
   'confirm_late_completion_message':
       'សូមបញ្ជាក់តែក្នុងករណីដែលអ្នកបានដឹកអ្នកដំណើរ និងដំណើរបានបញ្ចប់ពិតប្រាកដ។ ដំណើរចាស់នេះនឹងត្រូវបិទ និងកត់ត្រាថាបានបញ្ចប់យឺត។',
