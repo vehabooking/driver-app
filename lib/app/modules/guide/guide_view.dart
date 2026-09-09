@@ -590,13 +590,48 @@ class _SupportLoadingCard extends StatelessWidget {
   }
 }
 
+/// Converts the rich-text HTML from the dashboard editor into readable plain
+/// text: `<ol>` items keep their number, `<ul>` items get a bullet, and
+/// block tags (`<p>`, `<div>`, `<br>`, headings) become line breaks.
 String? _plainText(String? value) {
   if (value == null || value.trim().isEmpty) return null;
-  final text = value
-      .replaceAll(RegExp(r'<[^>]*>'), ' ')
+
+  var html = value.replaceAll(RegExp(r'[\r\n]+'), ' ');
+
+  // Numbered / bulleted lists — prefix each <li> with "1." or "•".
+  html = html.replaceAllMapped(
+    RegExp(r'<(ol|ul)\b[^>]*>(.*?)</\1>', caseSensitive: false, dotAll: true),
+    (m) {
+      final ordered = m.group(1)!.toLowerCase() == 'ol';
+      var n = 0;
+      final items = m
+          .group(2)!
+          .replaceAllMapped(
+            RegExp(r'<li\b[^>]*>', caseSensitive: false),
+            (_) => '\n${ordered ? '${++n}.' : '•'} ',
+          )
+          .replaceAll(RegExp(r'</li>', caseSensitive: false), '');
+      return '\n$items\n';
+    },
+  );
+
+  final text = html
+      .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+      .replaceAll(
+        RegExp(r'</(p|div|h[1-6]|blockquote|pre)>', caseSensitive: false),
+        '\n\n',
+      )
+      .replaceAll(RegExp(r'<[^>]*>'), '')
       .replaceAll('&nbsp;', ' ')
       .replaceAll('&amp;', '&')
-      .replaceAll(RegExp(r'\s+'), ' ')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'")
+      .split('\n')
+      .map((line) => line.replaceAll(RegExp(r'[ \t]+'), ' ').trim())
+      .join('\n')
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
       .trim();
   return text.isEmpty ? null : text;
 }
@@ -680,7 +715,11 @@ class _VideoCardState extends State<_VideoCard> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      summary,
+                      // Collapsed: flatten line breaks so the 2-line preview
+                      // isn't wasted on a paragraph gap.
+                      _expanded
+                          ? summary
+                          : summary.replaceAll(RegExp(r'\s+'), ' '),
                       maxLines: _expanded ? null : 2,
                       overflow: _expanded
                           ? TextOverflow.visible

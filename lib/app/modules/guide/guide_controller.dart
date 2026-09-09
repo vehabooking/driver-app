@@ -4,6 +4,7 @@ import '../../core/utils/external_launcher.dart';
 import '../../data/models/guide_video.dart';
 import '../../data/models/platform_info.dart';
 import '../../data/repositories/guide_repository.dart';
+import '../../data/services/settings_service.dart';
 
 class GuideController extends GetxController {
   GuideController(this._guideRepository);
@@ -22,6 +23,9 @@ class GuideController extends GetxController {
     super.onInit();
     loadVideos();
     loadPlatformInfo();
+    // Guide content is translated server-side (Content-Language header), so
+    // refetch when the user switches language.
+    ever(Get.find<SettingsService>().locale, (_) => loadVideos());
   }
 
   Future<void> loadVideos() async {

@@ -9,7 +9,8 @@ import 'api_exception.dart';
 ///
 /// On top of GetConnect it adds:
 ///   - a request modifier that injects the bearer token (kept in-memory,
-///     mirrored to [StorageService] by AuthService) + the `Accept` header;
+///     mirrored to [StorageService] by AuthService) + the `Accept` and
+///     `Content-Language` headers;
 ///   - a response modifier that resets the session on a 401 and bounces to
 ///     login;
 ///   - guarded [getJson]/[postJson] verbs that normalize every failure into an
@@ -35,9 +36,12 @@ class ApiClient extends GetConnect {
       ..timeout = AppConfig.receiveTimeout
       ..defaultContentType = 'application/json';
 
-    // Attach the bearer token + Accept header to every request.
+    // Attach the bearer token + Accept/Content-Language headers to every
+    // request. The backend's ContentLanguage middleware maps `km_KH`/`en_US`
+    // to the app locale so translatable fields come back in the user's language.
     httpClient.addRequestModifier<dynamic>((request) {
       request.headers['Accept'] = 'application/json';
+      request.headers['Content-Language'] = _storage.locale ?? 'en_US';
       if (token != null && token!.isNotEmpty) {
         request.headers['Authorization'] = 'Bearer $token';
       }

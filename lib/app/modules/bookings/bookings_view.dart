@@ -163,24 +163,6 @@ class _BookingsHeader extends StatelessWidget {
             ],
           ),
         ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.secondary.withValues(alpha: 0.06),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: IconButton(
-            tooltip: 'refresh'.tr,
-            onPressed: () => controller.fetch(),
-            icon: const Icon(IconsaxPlusLinear.refresh, size: 20),
-          ),
-        ),
       ],
     );
   }
