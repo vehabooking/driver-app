@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
@@ -9,7 +10,6 @@ import 'app/core/location/location_service.dart';
 import 'app/core/network/api_client.dart';
 import 'app/core/routes/app_pages.dart';
 import 'app/core/routes/app_routes.dart';
-import 'app/core/utils/app_snackbar.dart';
 import 'app/core/storage/storage_service.dart';
 import 'app/core/theme/app_theme.dart';
 import 'app/data/repositories/auth_repository.dart';
@@ -63,13 +63,10 @@ Future<void> main() async {
 
   // On a 401 anywhere, reset to login (and drop any background tracking
   // session that would otherwise keep posting with the dead token).
-  api.onUnauthorized = () {
-    Get.find<DriverTrackingService>().stop();
-    Get.offAllNamed(Routes.login);
-    // Tokens never expire server-side, so a 401 means this session was
-    // revoked — almost always because the account signed in on another phone.
-    AppSnackbar.info('session_replaced'.tr);
-  };
+  // Tokens never expire server-side, so a 401 means the session was revoked —
+  // the account signed in on another phone, or dispatch reset it. (A silent
+  // push usually gets there first; this is the fallback.)
+  api.onUnauthorized = () => unawaited(auth.forceSignOut());
 
   // Every launch starts on the animated splash, which then routes to
   // Welcome (first run) / Home (logged in) / Login.

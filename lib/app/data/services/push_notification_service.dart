@@ -11,6 +11,7 @@ import '../../core/storage/storage_service.dart';
 import '../../core/utils/device_identity.dart';
 import '../../core/utils/app_snackbar.dart';
 import '../repositories/notification_repository.dart';
+import 'auth_service.dart';
 
 class PushNotificationService extends GetxService {
   PushNotificationService(this._repo, this._api, this._storage);
@@ -100,7 +101,22 @@ class PushNotificationService extends GetxService {
     }
   }
 
+  /// Data-only push sent when this phone's session was ended elsewhere
+  /// (the driver signed in on another phone, or dispatch reset the account).
+  /// Acting on it here means the driver is bounced to the login screen at
+  /// once, instead of sitting on stale data until the next request 401s.
+  bool _handleSessionRevoked(RemoteMessage message) {
+    if (message.data['type']?.toString() != 'session.revoked') return false;
+
+    if (Get.isRegistered<AuthService>()) {
+      unawaited(Get.find<AuthService>().forceSignOut());
+    }
+    return true;
+  }
+
   void _handleForeground(RemoteMessage message) {
+    if (_handleSessionRevoked(message)) return;
+
     final title = message.notification?.title ?? message.data['title'];
     final body = message.notification?.body ?? message.data['message'];
 
@@ -112,6 +128,8 @@ class PushNotificationService extends GetxService {
   }
 
   void _openFromMessage(RemoteMessage message) {
+    if (_handleSessionRevoked(message)) return;
+
     // Promo broadcasts (e.g. "new booking — contact your manager") carry no
     // booking to open; tapping just brings the app up.
     final screen = message.data['screen']?.toString();

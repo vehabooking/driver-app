@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import '../../core/location/driver_tracking_service.dart';
 import '../../core/network/api_client.dart';
 import '../../core/storage/storage_service.dart';
+import '../../core/utils/app_snackbar.dart';
+import '../../core/routes/app_routes.dart';
 import '../../core/utils/device_identity.dart';
 import '../models/auth_user.dart';
 import '../models/takeover_challenge.dart';
@@ -124,6 +126,26 @@ class AuthService extends GetxService {
     _api.token = null;
     currentUser.value = null;
     await _storage.clearSecure();
+  }
+
+  /// Session ended by the server (signed in on another phone, or dispatch
+  /// reset the account). Nothing to revoke remotely — the token is already
+  /// gone — so just tear down locally and return to the login screen.
+  Future<void> forceSignOut({String messageKey = 'session_replaced'}) async {
+    if (!isLoggedIn) return;
+
+    if (Get.isRegistered<DriverTrackingService>()) {
+      await Get.find<DriverTrackingService>().stop();
+    }
+
+    _api.token = null;
+    currentUser.value = null;
+    await _storage.clearSecure();
+
+    if (Get.currentRoute != Routes.login) {
+      Get.offAllNamed(Routes.login);
+    }
+    AppSnackbar.info(messageKey.tr);
   }
 
   Future<void> _persist(String token, AuthUser user) async {
