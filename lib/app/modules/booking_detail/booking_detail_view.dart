@@ -12,7 +12,6 @@ import '../../core/widgets/info_row.dart';
 import '../../core/widgets/pickup_issue_sheet.dart';
 import '../../core/widgets/state_views.dart';
 import '../../core/widgets/stale_trip_notice.dart';
-import '../../core/widgets/start_window_notice.dart';
 import '../../core/widgets/step_action_button.dart';
 import '../../core/widgets/swipe_to_confirm.dart';
 import '../../core/widgets/trip_step_tracker.dart';
@@ -80,8 +79,9 @@ class BookingDetailView extends GetView<BookingDetailController> {
       }),
       bottomNavigationBar: Obx(() {
         final b = controller.booking.value;
-        // Show the footer when there's an action, or to explain why Start is locked.
-        if (b == null || (!b.can && !b.startLocked)) {
+        // Do not show a disabled footer for future/blocked trips. The server is
+        // authoritative: the footer appears when it supplies an action.
+        if (b == null || !b.can) {
           return const SizedBox.shrink();
         }
         return _StickyFooter(b: b, controller: controller);
@@ -135,80 +135,44 @@ class _StickyFooter extends StatelessWidget {
               compact: true,
             ),
             const SizedBox(height: AppSpacing.md),
-            // The standing arrival rule, shown wherever the driver decides
-            // whether to set off.
-            if (b.can || b.isStartWindowClosed) ...[
-              const ArrivalRuleNote(),
-              const SizedBox(height: AppSpacing.md),
+            const ArrivalRuleNote(),
+            const SizedBox(height: AppSpacing.md),
+            if (b.isStartOverdue) ...[
+              _StartOverdueNotice(b: b),
+              const SizedBox(height: AppSpacing.sm),
             ],
-            // Departure is still too far off for Start: `allowed_actions` is
-            // empty, so without this the footer would render nothing at all.
-            if (!b.can && b.isStartWindowClosed)
-              StartWindowNotice(startAvailableAtIso: b.startAvailableAtRaw),
-            if (b.can) ...[
-              if (b.isStartOverdue) ...[
-                _StartOverdueNotice(b: b),
-                const SizedBox(height: AppSpacing.sm),
-              ],
-              // A trip left running long past its departure. The start-overdue
-              // notices above only cover trips never started, so without this
-              // an abandoned in-progress trip explains itself to nobody.
-              if (b.isStaleInProgress) ...[
-                const StaleTripNotice(),
-                const SizedBox(height: AppSpacing.sm),
-              ],
-              _ActionBar(b: b, controller: controller),
-              if (b.canReportPickupIssue) ...[
-                const SizedBox(height: 2),
-                Obx(
-                  () => TextButton(
-                    onPressed: controller.isActing.value
-                        ? null
-                        : () => showPickupIssueSheet(
-                            context: context,
-                            onSubmit: controller.reportPickupIssue,
-                            reasonOptions: b.pickupIssueReasonOptions,
-                            noteMaxLength: b.pickupIssueNoteMaxLength,
-                          ),
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(0, 30),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: 4,
-                      ),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            // A trip left running long past its departure. The start-overdue
+            // notices above only cover trips never started, so without this
+            // an abandoned in-progress trip explains itself to nobody.
+            if (b.isStaleInProgress) ...[
+              const StaleTripNotice(),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            _ActionBar(b: b, controller: controller),
+            if (b.canReportPickupIssue) ...[
+              const SizedBox(height: 2),
+              Obx(
+                () => TextButton(
+                  onPressed: controller.isActing.value
+                      ? null
+                      : () => showPickupIssueSheet(
+                          context: context,
+                          onSubmit: controller.reportPickupIssue,
+                          reasonOptions: b.pickupIssueReasonOptions,
+                          noteMaxLength: b.pickupIssueNoteMaxLength,
+                        ),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(0, 30),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: 4,
                     ),
-                    child: Text('pickup_issue_link'.tr),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
+                  child: Text('pickup_issue_link'.tr),
                 ),
-              ],
-            ] else if (b.startLocked)
-              // Start is hidden until the driver finishes their current trip.
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    IconsaxPlusLinear.lock_1,
-                    size: 13,
-                    color: AppColors.primary.withValues(alpha: 0.72),
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Flexible(
-                    child: Text(
-                      'finish_current_trip'.tr,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.primary.withValues(alpha: 0.70),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11,
-                        letterSpacing: 0,
-                        height: 1.1,
-                      ),
-                    ),
-                  ),
-                ],
               ),
+            ],
           ],
         ),
       ),

@@ -12,7 +12,6 @@ import '../../core/widgets/confirm_dialog.dart';
 import '../../core/widgets/arrival_rule_note.dart';
 import '../../core/widgets/pickup_issue_sheet.dart';
 import '../../core/widgets/section_label.dart';
-import '../../core/widgets/start_window_notice.dart';
 import '../../core/widgets/stale_trip_notice.dart';
 import '../../core/widgets/state_views.dart';
 import '../../core/widgets/step_action_button.dart';
@@ -563,21 +562,11 @@ class _NextPickupCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.md),
                 _blockingTripNotice(theme),
               ],
-              // Departure is still too far off for Start. Show a disabled
-              // control with the unlock time rather than an empty card - the
-              // trip is the driver's, it just cannot begin yet.
               // The standing arrival rule, shown wherever the driver decides
               // whether to set off.
-              if (!next.needsResolution &&
-                  (next.nextAction != null || next.isStartWindowClosed)) ...[
+              if (!next.needsResolution && next.nextAction != null) ...[
                 const SizedBox(height: AppSpacing.md),
                 const ArrivalRuleNote(),
-              ],
-              if (next.nextAction == null && next.isStartWindowClosed) ...[
-                const SizedBox(height: AppSpacing.sm),
-                StartWindowNotice(
-                  startAvailableAtIso: next.startAvailableAtRaw,
-                ),
               ],
               if (next.nextAction != null) ...[
                 const SizedBox(height: AppSpacing.sm),
