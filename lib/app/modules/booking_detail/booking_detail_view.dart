@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
+import 'package:lottie/lottie.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -286,12 +287,13 @@ class _Detail extends StatelessWidget {
       b.hasReturn ? 'round_trip_badge'.tr : 'one_way'.tr;
 
   /// How this trip ended, or null while it is still running.
-  ({IconData icon, Color color, String title})? get _outcome {
+  ({IconData icon, Color color, String title, bool animated})? get _outcome {
     if (b.pickupIssueReason != null || b.stage == 'pickup_issue') {
       return (
         icon: IconsaxPlusLinear.info_circle,
         color: AppColors.pickupIssue,
         title: 'outcome_pickup_issue'.tr,
+        animated: false,
       );
     }
 
@@ -300,6 +302,7 @@ class _Detail extends StatelessWidget {
         icon: IconsaxPlusLinear.close_circle,
         color: AppColors.cancelled,
         title: 'outcome_cancelled'.tr,
+        animated: false,
       );
     }
 
@@ -310,6 +313,7 @@ class _Detail extends StatelessWidget {
         icon: IconsaxPlusLinear.tick_circle,
         color: AppColors.completed,
         title: 'outcome_completed'.tr,
+        animated: true,
       );
     }
 
@@ -318,97 +322,41 @@ class _Detail extends StatelessWidget {
 
   Widget _outcomeBanner(
     ThemeData theme,
-    ({IconData icon, Color color, String title}) outcome,
+    ({IconData icon, Color color, String title, bool animated}) outcome,
   ) {
-    final color = outcome.color;
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [color, Color.lerp(color, Colors.black, 0.22)!],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.35),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (outcome.animated)
+            Lottie.asset(
+              'assets/animations/check.json',
+              width: 128,
+              height: 128,
+              fit: BoxFit.contain,
+            )
+          else
+            Icon(outcome.icon, size: 76, color: outcome.color),
+          // The composition is padded inside its own canvas, so pull the label
+          // up rather than leaving a gap the layout cannot see.
+          Transform.translate(
+            offset: Offset(0, outcome.animated ? -26 : 4),
+            child: Text(
+              outcome.title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: outcome.color,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.2,
+                height: 1.1,
+              ),
+            ),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        child: Stack(
-          children: [
-            // Soft decorative discs — depth without another asset.
-            Positioned(
-              top: -34,
-              right: -22,
-              child: _outcomeDisc(96, 0.13),
-            ),
-            Positioned(
-              bottom: -40,
-              left: -18,
-              child: _outcomeDisc(84, 0.09),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.xl,
-              ),
-              child: Column(
-                children: [
-                  // Icon in a haloed white disc, so it reads at a glance.
-                  Container(
-                    width: 66,
-                    height: 66,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.18),
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                        ),
-                        child: Icon(outcome.icon, color: color, size: 28),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    outcome.title,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.3,
-                      height: 1.1,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
-
-  Widget _outcomeDisc(double size, double alpha) => Container(
-    width: size,
-    height: size,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      color: Colors.white.withValues(alpha: alpha),
-    ),
-  );
 
   Widget _bookingInfoCard(ThemeData theme) {
     return _SectionCard(
@@ -443,8 +391,10 @@ class _Detail extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              _detailStatusBadge(theme),
+              if (_outcome == null) ...[
+                const SizedBox(width: AppSpacing.sm),
+                _detailStatusBadge(theme),
+              ],
             ],
           ),
           const SizedBox(height: AppSpacing.md),
