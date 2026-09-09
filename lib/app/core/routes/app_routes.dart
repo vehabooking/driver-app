@@ -6,6 +6,7 @@ abstract class Routes {
   static const welcome = '/welcome';
   static const login = '/login';
   static const forgotPassword = '/forgot-password';
+  static const deviceTakeover = '/device-takeover';
   static const home = '/home';
   static const bookingDetail = '/booking-detail';
   static const tripMap = '/trip-map';

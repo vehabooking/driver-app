@@ -8,6 +8,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/otp_code_input.dart';
 import 'forgot_password_controller.dart';
 
 class ForgotPasswordView extends GetView<ForgotPasswordController> {
@@ -257,7 +258,12 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _otpCodeInput(theme, scheme),
+              OtpCodeInput(
+                controller: controller.otpCtrl,
+                focusNode: controller.otpFocusNode,
+                code: controller.otpCode,
+                onSubmitted: controller.verifyCode,
+              ),
               const SizedBox(height: AppSpacing.md),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -630,120 +636,6 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
             ),
           ),
           child: child,
-        ),
-      ),
-    ],
-  );
-
-  Widget _otpCodeInput(ThemeData theme, ColorScheme scheme) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Padding(
-        padding: const EdgeInsets.only(
-          left: AppSpacing.sm,
-          bottom: AppSpacing.md,
-        ),
-        child: Text(
-          'verification_code'.tr,
-          style: theme.textTheme.labelMedium?.copyWith(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.2,
-            color: scheme.onSurface.withValues(alpha: 0.72),
-          ),
-        ),
-      ),
-      GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: controller.otpFocusNode.requestFocus,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 1,
-              height: 1,
-              child: TextFormField(
-                controller: controller.otpCtrl,
-                focusNode: controller.otpFocusNode,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.done,
-                maxLength: 6,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(6),
-                ],
-                onFieldSubmitted: (_) => controller.verifyCode(),
-                showCursor: false,
-                style: const TextStyle(color: Colors.transparent),
-                decoration: const InputDecoration(
-                  counterText: '',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                  isCollapsed: true,
-                ),
-              ),
-            ),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final boxSize =
-                    ((constraints.maxWidth - (AppSpacing.sm * 5)) / 6).clamp(
-                      40.0,
-                      48.0,
-                    );
-
-                return Obx(() {
-                  final code = controller.otpCode.value;
-
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(6, (index) {
-                      final digit = index < code.length ? code[index] : '';
-                      final isActive = index == code.length && code.length < 6;
-                      final isFilled = digit.isNotEmpty;
-
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        curve: Curves.easeOut,
-                        width: boxSize,
-                        height: boxSize + AppSpacing.sm,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.96),
-                          borderRadius: BorderRadius.circular(
-                            AppSpacing.radiusMd,
-                          ),
-                          border: Border.all(
-                            color: isActive || isFilled
-                                ? AppColors.primary
-                                : scheme.outlineVariant.withValues(alpha: 0.62),
-                            width: isActive ? 1.8 : 1.1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.secondary.withValues(
-                                alpha: isFilled ? 0.10 : 0.05,
-                              ),
-                              blurRadius: isFilled ? 20 : 14,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          digit,
-                          style: GoogleFonts.fraunces(
-                            fontSize: 22,
-                            height: 1,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.onSurface,
-                          ),
-                        ),
-                      );
-                    }),
-                  );
-                });
-              },
-            ),
-          ],
         ),
       ),
     ],

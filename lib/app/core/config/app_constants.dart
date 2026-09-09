@@ -22,6 +22,10 @@ class AppConstants {
   static const String passwordResetOtpExpiresAtKey =
       'password_reset_otp_expires_at';
 
+  // Device takeover OTP: fallbacks when the backend omits the timings.
+  static const int takeoverOtpDefaultExpirySeconds = 300;
+  static const int takeoverResendCooldownSeconds = 60;
+
   // Default list page size (backend honours `limit`).
   static const int pageSize = 20;
 

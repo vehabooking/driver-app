@@ -8,6 +8,7 @@ import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../models/auth_user.dart';
 import '../models/driver_document.dart';
+import '../models/takeover_challenge.dart';
 
 /// Auth API calls. Failures surface as [ApiException] (thrown by [ApiClient]).
 class AuthRepository {
@@ -16,14 +17,30 @@ class AuthRepository {
   final ApiClient _api;
 
   /// Login with phone or email. Returns the issued token and the driver.
+  ///
+  /// One phone per account: when the account is live elsewhere the backend
+  /// answers 409 `ALREADY_SIGNED_IN_ELSEWHERE`. Pass the verified
+  /// [takeoverToken] + [takeoverOtp] from [requestTakeover] to sign in here
+  /// anyway and sign the other phone out. A wrong code is a 422
+  /// `TAKEOVER_OTP_INVALID`.
   Future<({String token, AuthUser user})> login({
     required String login,
     required String password,
     required String deviceName,
+    String? takeoverToken,
+    String? takeoverOtp,
   }) async {
     final res = await _api.postJson(
       '${AppConfig.authApiUrl}/auth/login',
-      data: {'login': login, 'password': password, 'device_name': deviceName},
+      data: {
+        'login': login,
+        'password': password,
+        'device_name': deviceName,
+        if (takeoverToken != null && takeoverToken.isNotEmpty)
+          'takeover_token': takeoverToken,
+        if (takeoverOtp != null && takeoverOtp.isNotEmpty)
+          'takeover_otp': takeoverOtp.trim(),
+      },
     );
 
     final data = (res as Map)['data'] as Map<String, dynamic>;
@@ -31,6 +48,40 @@ class AuthRepository {
       token: data['token'].toString(),
       user: AuthUser.fromJson(data['user'] as Map<String, dynamic>),
     );
+  }
+
+  /// Ask to move the account onto this phone. The backend sends a one-time
+  /// code to the registered destination and returns the challenge; `null`
+  /// means no other phone holds the account and a plain login will do.
+  ///
+  /// A 429 (resend cooldown) surfaces as an [ApiException] whose payload
+  /// still carries `token`/`expires_in`/`cooldown_remaining`.
+  Future<TakeoverChallenge?> requestTakeover({
+    required String login,
+    required String password,
+    required String deviceName,
+  }) async {
+    final res = await _api.postJson(
+      '${AppConfig.authApiUrl}/auth/takeover/request',
+      data: {'login': login, 'password': password, 'device_name': deviceName},
+    );
+
+    final data = _responseData(res);
+    if (data['takeover_required'] == false) return null;
+    return TakeoverChallenge.fromJson(data);
+  }
+
+  /// Send a fresh code for an existing takeover challenge.
+  Future<TakeoverChallenge> resendTakeover({required String token}) async {
+    final res = await _api.postJson(
+      '${AppConfig.authApiUrl}/auth/takeover/resend',
+      data: {'token': token},
+    );
+
+    final data = _responseData(res);
+    final challenge = TakeoverChallenge.fromJson(data);
+    // Some backends omit the token on resend when it is unchanged.
+    return challenge.token.isEmpty ? challenge.copyWith(token: token) : challenge;
   }
 
   /// Start the driver password-reset flow. The backend accepts either phone or

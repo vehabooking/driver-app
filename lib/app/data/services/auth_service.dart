@@ -5,7 +5,9 @@ import 'package:get/get.dart';
 import '../../core/location/driver_tracking_service.dart';
 import '../../core/network/api_client.dart';
 import '../../core/storage/storage_service.dart';
+import '../../core/utils/device_identity.dart';
 import '../models/auth_user.dart';
+import '../models/takeover_challenge.dart';
 import '../repositories/auth_repository.dart';
 import 'push_notification_service.dart';
 
@@ -37,27 +39,43 @@ class AuthService extends GetxService {
     return this;
   }
 
-  /// Stable per-install device name sent with login/logout.
-  String deviceName() {
-    var name = _storage.deviceName;
-    if (name == null || name.isEmpty) {
-      name = 'driver-app-${DateTime.now().millisecondsSinceEpoch}';
-      _storage.deviceName = name;
-    }
-    return name;
-  }
+  /// Stable per-phone device name sent with login/logout (see [DeviceIdentity]).
+  Future<String> deviceName() => DeviceIdentity(_storage).name();
 
-  Future<void> login(String login, String password) async {
+  /// Sign in on this phone. Supply [takeoverToken] + [takeoverOtp] (from
+  /// [requestTakeover]) to move the account here when it is live elsewhere.
+  Future<void> login(
+    String login,
+    String password, {
+    String? takeoverToken,
+    String? takeoverOtp,
+  }) async {
     final result = await _repo.login(
       login: login,
       password: password,
-      deviceName: deviceName(),
+      deviceName: await deviceName(),
+      takeoverToken: takeoverToken,
+      takeoverOtp: takeoverOtp,
     );
     await _persist(result.token, result.user);
     if (Get.isRegistered<PushNotificationService>()) {
       await Get.find<PushNotificationService>().registerCurrentDevice();
     }
   }
+
+  /// Start the "use this phone instead" verification. `null` means the
+  /// account is not held by another phone and a plain [login] will succeed.
+  Future<TakeoverChallenge?> requestTakeover(String login, String password) async {
+    return _repo.requestTakeover(
+      login: login,
+      password: password,
+      deviceName: await deviceName(),
+    );
+  }
+
+  /// Send another code for a pending takeover challenge.
+  Future<TakeoverChallenge> resendTakeover(String token) =>
+      _repo.resendTakeover(token: token);
 
   /// Update editable profile fields and persist the refreshed user.
   Future<void> updateProfile({
@@ -99,7 +117,7 @@ class AuthService extends GetxService {
     }
 
     try {
-      await _repo.logout(deviceName());
+      await _repo.logout(await deviceName());
     } catch (_) {
       // Best-effort server revoke; local clear below is what matters.
     }

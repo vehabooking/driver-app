@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import '../../core/network/api_client.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/storage/storage_service.dart';
+import '../../core/utils/device_identity.dart';
 import '../../core/utils/app_snackbar.dart';
 import '../repositories/notification_repository.dart';
 
@@ -78,7 +79,7 @@ class PushNotificationService extends GetxService {
       return;
     }
 
-    final deviceName = _deviceName();
+    final deviceName = await DeviceIdentity(_storage).name();
 
     try {
       await _repo.registerDevice(
@@ -142,15 +143,6 @@ class PushNotificationService extends GetxService {
     );
   }
 
-  String _deviceName() {
-    var name = _storage.deviceName;
-    if (name == null || name.isEmpty) {
-      name = 'driver-app-${DateTime.now().millisecondsSinceEpoch}';
-      _storage.deviceName = name;
-    }
-
-    return name;
-  }
 
   @override
   void onClose() {

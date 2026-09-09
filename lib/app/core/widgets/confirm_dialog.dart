@@ -18,6 +18,7 @@ Future<bool> showConfirmDialog({
   String? confirmLabel,
   String? cancelLabel,
   bool destructive = false,
+  bool centered = false,
 }) async {
   final context = Get.context;
   if (context == null) return false;
@@ -54,6 +55,7 @@ Future<bool> showConfirmDialog({
       ),
       title: Text(
         title,
+        textAlign: centered ? TextAlign.center : TextAlign.start,
         style: theme.textTheme.titleMedium?.copyWith(
           fontSize: 17,
           fontWeight: FontWeight.w800,
@@ -65,6 +67,7 @@ Future<bool> showConfirmDialog({
       ),
       content: Text(
         message,
+        textAlign: centered ? TextAlign.center : TextAlign.start,
         style: theme.textTheme.bodyMedium?.copyWith(
           height: 1.35,
           color: theme.colorScheme.onSurfaceVariant,
@@ -136,6 +139,7 @@ Future<bool> confirmSignOut() => showConfirmDialog(
   confirmLabel: 'sign_out'.tr,
   cancelLabel: 'cancel'.tr,
   destructive: true,
+  centered: true,
 );
 
 /// Guarded recovery for a trip that was completed in reality but left open in

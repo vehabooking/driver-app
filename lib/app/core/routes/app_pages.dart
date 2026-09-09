@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../../modules/auth/device_takeover_binding.dart';
+import '../../modules/auth/device_takeover_view.dart';
 import '../../modules/auth/forgot_password_binding.dart';
 import '../../modules/auth/forgot_password_view.dart';
 import '../../modules/auth/login_binding.dart';
@@ -43,6 +45,12 @@ class AppPages {
       name: Routes.forgotPassword,
       page: () => const ForgotPasswordView(),
       binding: ForgotPasswordBinding(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: Routes.deviceTakeover,
+      page: () => const DeviceTakeoverView(),
+      binding: DeviceTakeoverBinding(),
       transition: Transition.rightToLeft,
     ),
     GetPage(
