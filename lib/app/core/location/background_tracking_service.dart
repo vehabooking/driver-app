@@ -19,8 +19,10 @@ import 'package:geolocator/geolocator.dart';
 class BackgroundTrackingService {
   const BackgroundTrackingService._();
 
-  /// How often the task posts a fix while a trip is live.
-  static const Duration interval = Duration(seconds: 20);
+  /// How often the task posts a fix while a trip is live. Also the fallback
+  /// for a session started without an explicit cadence — dispatch's pre-trip
+  /// push asks for a slower one (see [start]).
+  static const Duration defaultInterval = Duration(seconds: 20);
 
   /// Hard cap so a forgotten trip never tracks forever.
   static const Duration maxDuration = Duration(hours: 12);
@@ -35,6 +37,7 @@ class BackgroundTrackingService {
   static const String _keyUuid = 'tracking.uuid';
   static const String _keyAssignmentId = 'tracking.assignment_id';
   static const String _keyStartedAt = 'tracking.started_at';
+  static const String _keyIntervalSeconds = 'tracking.interval_seconds';
 
   /// Message types sent from the task isolate to the main isolate.
   static const String eventLocation = 'location';
@@ -42,12 +45,24 @@ class BackgroundTrackingService {
 
   static bool _initialized = false;
 
-  /// One-time plugin setup. Safe to call more than once.
+  /// One-time setup for the UI isolate. Safe to call more than once.
+  ///
+  /// Deliberately not called from the FCM background isolate: registering the
+  /// communication port there would steal the port name from the UI isolate
+  /// and silence its location callbacks. That isolate only ever needs
+  /// [_configure], which [start] does for it.
   static void init() {
     if (_initialized) return;
     _initialized = true;
 
     FlutterForegroundTask.initCommunicationPort();
+    _configure(defaultInterval);
+  }
+
+  /// Hands the plugin the options the next `startService` will be given.
+  /// The reporting cadence is per session, so it is applied here rather than
+  /// baked into a constant.
+  static void _configure(Duration interval) {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: _channelId,
@@ -86,11 +101,17 @@ class BackgroundTrackingService {
     final startedAt = await FlutterForegroundTask.getData<int>(
       key: _keyStartedAt,
     );
+    final intervalSeconds = await FlutterForegroundTask.getData<int>(
+      key: _keyIntervalSeconds,
+    );
     if (uuid == null || assignmentId == null) return null;
 
     return BackgroundTrackingTarget(
       uuid: uuid,
       assignmentId: assignmentId,
+      interval: intervalSeconds == null
+          ? defaultInterval
+          : Duration(seconds: intervalSeconds),
       startedAt: startedAt == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(startedAt),
@@ -112,15 +133,31 @@ class BackgroundTrackingService {
   }
 
   /// Start (or restart with new data) the tracking service for one trip.
+  ///
+  /// [interval] is how often the task posts a fix: [defaultInterval] for a
+  /// live trip, whatever dispatch asked for in the pre-trip push otherwise.
   /// Returns `false` when the platform refused to start it.
+  ///
+  /// Callable from the FCM background isolate — it touches nothing but the
+  /// plugin.
   static Future<bool> start({
     required String baseUrl,
     required String token,
     required String locale,
     required String uuid,
     required int assignmentId,
+    Duration interval = defaultInterval,
   }) async {
-    init();
+    _configure(interval);
+
+    // A running service cannot be re-paced: `restartService` reuses the
+    // options it was started with. Changing cadence (pre-trip 60s → live 20s)
+    // therefore means dropping the service and starting a clean one.
+    final wasRunning = await isRunning;
+    final keepsCadence = wasRunning && await _runsAt(interval);
+    if (wasRunning && !keepsCadence) {
+      await FlutterForegroundTask.stopService();
+    }
 
     await Future.wait([
       FlutterForegroundTask.saveData(key: _keyBaseUrl, value: baseUrl),
@@ -132,13 +169,17 @@ class BackgroundTrackingService {
         value: assignmentId,
       ),
       FlutterForegroundTask.saveData(
+        key: _keyIntervalSeconds,
+        value: interval.inSeconds,
+      ),
+      FlutterForegroundTask.saveData(
         key: _keyStartedAt,
         value: DateTime.now().millisecondsSinceEpoch,
       ),
     ]);
 
     final ServiceRequestResult result;
-    if (await isRunning) {
+    if (keepsCadence) {
       // Restart re-runs onStart so the handler picks up the new trip data.
       result = await FlutterForegroundTask.restartService();
     } else {
@@ -152,6 +193,14 @@ class BackgroundTrackingService {
     }
 
     return result is ServiceRequestSuccess;
+  }
+
+  /// Whether the running service already reports at [interval].
+  static Future<bool> _runsAt(Duration interval) async {
+    final seconds = await FlutterForegroundTask.getData<int>(
+      key: _keyIntervalSeconds,
+    );
+    return (seconds ?? defaultInterval.inSeconds) == interval.inSeconds;
   }
 
   /// Stop the service and forget the hand-over data (including the token).
@@ -173,6 +222,7 @@ class BackgroundTrackingService {
       _keyLocale,
       _keyUuid,
       _keyAssignmentId,
+      _keyIntervalSeconds,
       _keyStartedAt,
     ]) {
       await FlutterForegroundTask.removeData(key: key);
@@ -205,11 +255,16 @@ class BackgroundTrackingTarget {
   const BackgroundTrackingTarget({
     required this.uuid,
     required this.assignmentId,
+    this.interval = BackgroundTrackingService.defaultInterval,
     this.startedAt,
   });
 
   final String uuid;
   final int assignmentId;
+
+  /// The cadence the session is running at — a live trip reports every
+  /// [BackgroundTrackingService.defaultInterval], a pre-trip session slower.
+  final Duration interval;
   final DateTime? startedAt;
 
   bool matches(String uuid, int assignmentId) =>
@@ -236,6 +291,7 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
   String? _locale;
   String? _uuid;
   int? _assignmentId;
+  Duration _interval = BackgroundTrackingService.defaultInterval;
   DateTime? _startedAt;
 
   StreamSubscription<Position>? _positions;
@@ -289,6 +345,12 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
     _assignmentId = await FlutterForegroundTask.getData<int>(
       key: BackgroundTrackingService._keyAssignmentId,
     );
+    final intervalSeconds = await FlutterForegroundTask.getData<int>(
+      key: BackgroundTrackingService._keyIntervalSeconds,
+    );
+    _interval = intervalSeconds == null
+        ? BackgroundTrackingService.defaultInterval
+        : Duration(seconds: intervalSeconds);
     final startedAt = await FlutterForegroundTask.getData<int>(
       key: BackgroundTrackingService._keyStartedAt,
     );
@@ -342,13 +404,21 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
     }
   }
 
+  /// A fix is only worth posting while it still describes where the driver is.
+  ///
+  /// The stream can stall (permission revoked, the OS throttling a background
+  /// app) and a one-shot read can time out indoors. Falling back to whatever
+  /// `_latest` held meant a frozen position was re-posted every tick and the
+  /// server stamped it as current - a driver in Siem Reap showing in Phnom
+  /// Penh. Better to send nothing and let the dashboard mark them stale.
+  static const Duration _maxFixAge = Duration(minutes: 2);
+
   Future<Position?> _currentPosition() async {
     final latest = _latest;
-    if (latest != null &&
-        DateTime.now().difference(latest.timestamp) <
-            BackgroundTrackingService.interval) {
-      return latest;
-    }
+    // A streamed fix from within this tick is as good as a new read — but a
+    // slow (pre-trip) cadence must not stretch that past [_maxFixAge].
+    final reusable = _interval < _maxFixAge ? _interval : _maxFixAge;
+    if (_isFresh(latest, reusable)) return latest;
 
     try {
       return await Geolocator.getCurrentPosition(
@@ -358,8 +428,15 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
         ),
       );
     } catch (_) {
-      return latest;
+      // Only reuse the streamed fix while it is still recent enough to be true.
+      return _isFresh(latest, _maxFixAge) ? latest : null;
     }
+  }
+
+  bool _isFresh(Position? position, Duration within) {
+    if (position == null) return false;
+    final age = DateTime.now().difference(position.timestamp);
+    return !age.isNegative && age < within;
   }
 
   Future<void> _post() async {
@@ -380,7 +457,9 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
       }
 
       final position = await _currentPosition();
-      if (position == null) return;
+      // Never report a position the device recorded long ago: a stale fix
+      // posted as current is worse than a gap in the trail.
+      if (position == null || !_isFresh(position, _maxFixAge)) return;
 
       final speedKmh = _speedKmh(position.speed);
       final payload = <String, dynamic>{

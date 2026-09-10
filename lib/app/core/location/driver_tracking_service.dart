@@ -39,7 +39,8 @@ class DriverTrackingService extends GetxService {
   );
 
   static const Duration snapshotInterval = Duration(minutes: 3);
-  static const Duration liveInterval = BackgroundTrackingService.interval;
+  static const Duration liveInterval =
+      BackgroundTrackingService.defaultInterval;
   static const Duration maxLiveDuration = BackgroundTrackingService.maxDuration;
 
   final BookingRepository _bookingRepository;
@@ -197,8 +198,12 @@ class DriverTrackingService extends GetxService {
         if (running.isExpired) {
           _notifyTrackingExpired();
           await BackgroundTrackingService.stop();
+          return;
         }
-        return;
+        // The trip may already be tracked at the slower pre-trip cadence
+        // dispatch asked for before departure; now it is live, so fall
+        // through and restart it at [liveInterval].
+        if (running.interval == liveInterval) return;
       }
 
       await BackgroundTrackingService.ensureNotificationPermission();
@@ -209,6 +214,7 @@ class DriverTrackingService extends GetxService {
         locale: _storage.locale ?? 'en_US',
         uuid: uuid,
         assignmentId: assignmentId,
+        interval: liveInterval,
       );
       if (started) {
         // [stop] raced the start (e.g. logout mid-request): honour it.

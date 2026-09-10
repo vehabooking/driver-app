@@ -5,6 +5,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
+import '../../core/config/app_config.dart';
+import '../../core/location/tracking_push_handler.dart';
 import '../../core/network/api_client.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/storage/storage_service.dart';
@@ -12,6 +14,7 @@ import '../../core/utils/device_identity.dart';
 import '../../core/utils/app_snackbar.dart';
 import '../repositories/notification_repository.dart';
 import 'auth_service.dart';
+import 'push_background_handler.dart';
 
 class PushNotificationService extends GetxService {
   PushNotificationService(this._repo, this._api, this._storage);
@@ -34,6 +37,10 @@ class PushNotificationService extends GetxService {
       _ready = false;
       return this;
     }
+
+    // Silent tracking pushes have to be acted on even when the app is
+    // backgrounded or was never opened, which only this handler sees.
+    FirebaseMessaging.onBackgroundMessage(firebasePushBackgroundHandler);
 
     await FirebaseMessaging.instance.requestPermission(
       alert: true,
@@ -114,8 +121,32 @@ class PushNotificationService extends GetxService {
     return true;
   }
 
+  /// Dispatch's tracking pushes carry no copy — they only steer the
+  /// background location session. Handled here as well as in the background
+  /// isolate so an open app behaves exactly like a closed one.
+  bool _handleTracking(RemoteMessage message) {
+    if (!TrackingPushHandler.handles(message.data)) return false;
+
+    unawaited(
+      TrackingPushHandler.handle(message.data, session: _currentSession),
+    );
+    return true;
+  }
+
+  Future<TrackingSession?> _currentSession() async {
+    final token = _api.token;
+    if (token == null || token.isEmpty) return null;
+
+    return TrackingSession(
+      baseUrl: AppConfig.bookingsApiUrl,
+      token: token,
+      locale: _storage.locale ?? 'en_US',
+    );
+  }
+
   void _handleForeground(RemoteMessage message) {
     if (_handleSessionRevoked(message)) return;
+    if (_handleTracking(message)) return;
 
     final title = message.notification?.title ?? message.data['title'];
     final body = message.notification?.body ?? message.data['message'];
@@ -160,7 +191,6 @@ class PushNotificationService extends GetxService {
       arguments: {'uuid': uuid, 'assignment_id': ?assignmentId},
     );
   }
-
 
   @override
   void onClose() {

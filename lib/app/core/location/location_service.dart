@@ -34,6 +34,11 @@ class LocationUnavailableException implements Exception {
 }
 
 class LocationService {
+  /// A fix older than this no longer says where the driver is. The platform
+  /// can answer a one-shot read from its cache, so the age is checked rather
+  /// than trusted.
+  static const Duration maxFixAge = Duration(minutes: 2);
+
   Future<void> ensureReady() => _ensurePermission();
 
   Future<DriverLocation> current() async {
@@ -45,6 +50,11 @@ class LocationService {
         timeLimit: Duration(seconds: 12),
       ),
     );
+
+    final age = DateTime.now().difference(position.timestamp);
+    if (!age.isNegative && age > maxFixAge) {
+      throw const LocationUnavailableException('location_unavailable');
+    }
 
     return DriverLocation(
       latitude: position.latitude,
