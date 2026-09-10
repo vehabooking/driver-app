@@ -1,4 +1,5 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class AppConfig {
   const AppConfig._();
@@ -7,8 +8,19 @@ class AppConfig {
 
   static const String envFileName = '.env';
 
+  /// Version the build actually carries, read once at startup. Hardcoding it
+  /// meant every build claimed 1.0.0, so a driver could never tell you which
+  /// one they were running.
+  static String appVersion = '';
+
   static Future<void> load() async {
     await dotenv.load(fileName: envFileName);
+
+    try {
+      appVersion = (await PackageInfo.fromPlatform()).version;
+    } catch (_) {
+      appVersion = '';
+    }
     if (_rawBaseUrl.isEmpty) {
       throw StateError(
         'APP_URL is missing or empty in $envFileName. '

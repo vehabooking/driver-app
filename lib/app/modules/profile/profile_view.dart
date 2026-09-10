@@ -128,7 +128,7 @@ class ProfileView extends GetView<ProfileController> {
                     const SizedBox(height: AppSpacing.md),
                     Center(
                       child: Text(
-                        'version_label'.trParams({'version': '1.0.0'}),
+                        'version_label'.trParams({'version': AppConfig.appVersion}),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.outline,
                         ),

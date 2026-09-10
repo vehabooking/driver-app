@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/veha_logo_draw.dart';
 import 'splash_controller.dart';
+import '../../core/config/app_config.dart';
 
 /// First screen on every launch — a quiet brand mark pulses while
 /// [SplashController] resolves the driver's next screen.
@@ -59,7 +60,7 @@ class SplashView extends GetView<SplashController> {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      'Version 1.0.0',
+                      'version_label'.trParams({'version': AppConfig.appVersion}),
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: const Color(0xFF8A949F),
