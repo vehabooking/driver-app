@@ -50,6 +50,22 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Android renders the status-bar icon as a silhouette, so a colour
+             launcher icon shows as a white blob. These point FCM at a proper
+             monochrome mark and tint it with the brand colour. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notify" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_icon_color" />
+
+        <!-- Same mark for the trip-tracking foreground service, looked up by
+             flutter_foreground_task through this meta-data name. -->
+        <meta-data
+            android:name="com.vehabooking.driver.NOTIFICATION_ICON"
+            android:resource="@drawable/ic_stat_notify" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

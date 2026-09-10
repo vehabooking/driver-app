@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../theme/app_colors.dart';
+
 /// Live-trip location tracking that outlives the UI.
 ///
 /// Runs as a `flutter_foreground_task` service (Android foreground service
@@ -188,6 +190,13 @@ class BackgroundTrackingService {
         serviceTypes: [ForegroundServiceTypes.location],
         notificationTitle: 'Veha Driver',
         notificationText: 'Trip in progress · sharing live location',
+        // Without this the service falls back to the launcher icon, which
+        // Android flattens to a white square. Same monochrome mark and brand
+        // tint the FCM notifications use, so the two look like one app.
+        notificationIcon: const NotificationIcon(
+          metaDataName: 'com.vehabooking.driver.NOTIFICATION_ICON',
+          backgroundColor: AppColors.primary,
+        ),
         callback: backgroundTrackingCallback,
       );
     }

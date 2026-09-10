@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#00B19D</color>
+    <!-- Tint Android applies to the (monochrome) notification icon. -->
+    <color name="notification_icon_color">#00B39F</color>
 </resources>
