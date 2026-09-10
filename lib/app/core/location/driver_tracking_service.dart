@@ -128,6 +128,10 @@ class DriverTrackingService extends GetxService {
       return;
     }
 
+    // Report once straight away, then on the interval. Waiting the full three
+    // minutes meant a driver who opened the app was invisible to dispatch for
+    // longer than most people keep the app open.
+    unawaited(_safeSync(uuid: uuid, assignmentId: assignmentId));
     _startTimer(snapshotInterval, uuid: uuid, assignmentId: assignmentId);
   }
 
