@@ -106,7 +106,11 @@ class _TripMapViewState extends State<TripMapView> {
 
   final GlobalKey _sheetKey = GlobalKey();
 
-  RouteMapArgs get args => Get.arguments as RouteMapArgs;
+  /// Read once and held. `Get.arguments` belongs to whichever route is
+  /// current, so re-reading it on every build crashes the moment this screen
+  /// pops - the widget rebuilds during the pop animation and the cast sees
+  /// the next route's (null) arguments.
+  late final RouteMapArgs args = Get.arguments as RouteMapArgs;
 
   @override
   void initState() {
