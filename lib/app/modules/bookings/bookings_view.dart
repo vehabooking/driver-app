@@ -10,6 +10,7 @@ import '../../data/models/booking_list_item.dart';
 import 'bookings_controller.dart';
 import 'widgets/booking_card.dart';
 import '../../core/theme/app_ink.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class BookingsView extends GetView<BookingsController> {
   const BookingsView({super.key});
@@ -45,8 +46,6 @@ class BookingsView extends GetView<BookingsController> {
             ),
             Expanded(
               child: Obx(() {
-                if (controller.isLoading.value) return const LoadingView();
-
                 if (controller.error.value != null) {
                   return ErrorView(
                     message: controller.error.value!,
@@ -74,18 +73,28 @@ class BookingsView extends GetView<BookingsController> {
                   );
                 }
 
+                // While loading, the real cards are rendered from placeholder
+                // rows and traced by Skeletonizer - so the skeleton can never
+                // drift from the card's actual layout.
+                final loading = controller.isLoading.value;
+
                 return RefreshIndicator(
                   color: AppColors.primary,
                   onRefresh: controller.fetch,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.pageH,
-                      AppSpacing.sm,
-                      AppSpacing.pageH,
-                      AppSpacing.navClearance,
+                  child: Skeletonizer(
+                    enabled: loading,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.pageH,
+                        AppSpacing.sm,
+                        AppSpacing.pageH,
+                        AppSpacing.navClearance,
+                      ),
+                      children: loading
+                          ? _placeholderRows()
+                          : _buildRows(context),
                     ),
-                    children: _buildRows(context),
                   ),
                 );
               }),
@@ -95,6 +104,15 @@ class BookingsView extends GetView<BookingsController> {
       ),
     );
   }
+
+  /// Cards built from dummy data, for Skeletonizer to trace while loading.
+  List<Widget> _placeholderRows() => List.generate(
+    3,
+    (_) => Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: BookingCard(booking: BookingListItem.placeholder(), onTap: () {}),
+    ),
+  );
 
   /// Flatten grouped sections into header + card rows.
   List<Widget> _buildRows(BuildContext context) {

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_ink.dart';
 
 /// Horizontal 4-step trip tracker: Start -> Arrived -> Meet -> Drop.
 ///
@@ -137,7 +138,7 @@ class _Step extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
           style: theme.textTheme.labelSmall?.copyWith(
-            color: isPrimary ? AppColors.primary : AppColors.secondary,
+            color: isPrimary ? AppColors.primary : theme.ink,
             fontWeight: FontWeight.w700,
             fontSize: 11,
             letterSpacing: 0,

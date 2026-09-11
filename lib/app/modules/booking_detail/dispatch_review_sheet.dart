@@ -219,7 +219,7 @@ class _DispatchInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = enabled ? AppColors.secondary : theme.colorScheme.outline;
+    final color = enabled ? theme.ink : theme.colorScheme.outline;
 
     return Material(
       color: enabled

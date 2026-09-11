@@ -20,6 +20,7 @@ import 'app/data/repositories/notification_repository.dart';
 import 'app/data/services/auth_service.dart';
 import 'app/data/services/push_notification_service.dart';
 import 'app/data/services/settings_service.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -100,7 +101,28 @@ class VehaDriverApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
       ],
-      builder: (context, child) => _MobileAppFrame(child: child),
+      builder: (context, child) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+
+        // One skeleton look for the whole app, matched to the active theme.
+        return SkeletonizerConfig(
+          data: SkeletonizerConfigData(
+            effect: ShimmerEffect(
+              baseColor: theme.colorScheme.onSurface.withValues(
+                alpha: isDark ? 0.10 : 0.07,
+              ),
+              highlightColor: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.white.withValues(alpha: 0.55),
+              duration: const Duration(milliseconds: 1400),
+            ),
+            justifyMultiLineText: true,
+            textBorderRadius: const TextBoneBorderRadius.fromHeightFactor(0.5),
+          ),
+          child: _MobileAppFrame(child: child),
+        );
+      },
       initialRoute: Routes.splash,
       getPages: AppPages.pages,
     );

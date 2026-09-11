@@ -29,6 +29,14 @@ class DriverDocument {
     this.files = const [],
   });
 
+  /// Dummy document so the Documents skeleton has cards to trace.
+  factory DriverDocument.placeholder() => const DriverDocument(
+    type: 'placeholder',
+    label: 'Document name',
+    status: 'pending',
+    statusLabel: 'Status',
+  );
+
   final String type;
   final String label;
   final String? status;

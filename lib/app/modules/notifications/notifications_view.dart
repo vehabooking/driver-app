@@ -11,6 +11,7 @@ import '../../core/widgets/state_views.dart';
 import '../../data/models/driver_notification.dart';
 import 'notifications_controller.dart';
 import '../../core/theme/app_ink.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class NotificationsView extends GetView<NotificationsController> {
   const NotificationsView({super.key});
@@ -159,17 +160,15 @@ class _FilterTabs extends GetView<NotificationsController> {
     return Obx(
       () => Container(
         height: 44,
-        padding: const EdgeInsets.all(3),
+        padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: AppColors.secondary.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.secondary.withValues(alpha: 0.035),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.55),
+          ),
         ),
         child: Row(
           children: [
@@ -211,25 +210,17 @@ class _FilterTab extends StatelessWidget {
           duration: const Duration(milliseconds: 180),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: AppColors.secondary.withValues(alpha: 0.08),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
+            // A filled brand pill reads in both themes; the previous white
+            // pill carried near-white ink in dark mode and vanished.
+            color: selected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusXl - 4),
           ),
           child: Text(
             label,
             style: theme.textTheme.labelLarge?.copyWith(
-              color: selected
-                  ? AppColors.secondary
-                  : theme.inkMuted(0.62),
-              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+              color: selected ? Colors.white : theme.inkMuted(0.62),
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              fontSize: 14,
               letterSpacing: 0,
             ),
           ),
@@ -256,9 +247,18 @@ class _NotificationsBody extends GetView<NotificationsController> {
       }
 
       if (controller.isLoading.value) {
-        return SizedBox(
-          height: MediaQuery.sizeOf(context).height * 0.42,
-          child: const Center(child: CircularProgressIndicator()),
+        return Skeletonizer(
+          child: Column(
+            children: List.generate(
+              4,
+              (_) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: _NotificationTile(
+                  item: DriverNotification.placeholder(),
+                ),
+              ),
+            ),
+          ),
         );
       }
 
@@ -277,9 +277,12 @@ class _NotificationsBody extends GetView<NotificationsController> {
               child: _NotificationTile(item: item),
             ),
           ),
+          // Paging appends to a list that is already on screen, so a skeleton
+          // tile reads better than a spinner - it shows what is arriving.
           if (controller.isLoadingMore.value) ...[
-            const SizedBox(height: AppSpacing.md),
-            const Center(child: CircularProgressIndicator()),
+            Skeletonizer(
+              child: _NotificationTile(item: DriverNotification.placeholder()),
+            ),
           ],
         ],
       );
@@ -397,13 +400,16 @@ class _NotificationTile extends GetView<NotificationsController> {
                 ),
                 if (isUnread) ...[
                   const SizedBox(width: AppSpacing.sm),
-                  Container(
-                    width: 8,
-                    height: 8,
-                    margin: const EdgeInsets.only(top: 5),
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
+                  Skeleton.replace(
+                    replacement: const Bone.circle(size: 8),
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      margin: const EdgeInsets.only(top: 5),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
                 ],
@@ -441,7 +447,8 @@ class _NotificationTile extends GetView<NotificationsController> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.outline,
+                  color: theme.inkMuted(0.72),
+                  fontWeight: FontWeight.w500,
                   height: 1.28,
                 ),
               ),
@@ -464,7 +471,7 @@ class _NotificationTile extends GetView<NotificationsController> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.outline,
+                  color: theme.inkMuted(0.66),
                   fontWeight: FontWeight.w500,
                   height: 1.2,
                 ),
@@ -474,7 +481,7 @@ class _NotificationTile extends GetView<NotificationsController> {
               Text(
                 item.createdAtHuman!,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.outline,
+                  color: theme.inkMuted(0.66),
                   fontWeight: FontWeight.w500,
                 ),
               ),

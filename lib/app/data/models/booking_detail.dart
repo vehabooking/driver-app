@@ -71,6 +71,44 @@ class BookingDetail {
     this.flightDatetime,
   });
 
+  /// Dummy detail used only to give [Skeletonizer] a real screen to trace
+  /// while the booking loads.
+  factory BookingDetail.placeholder() {
+    final soon = DateTime.now()
+        .add(const Duration(hours: 3))
+        .toUtc()
+        .toIso8601String();
+
+    return BookingDetail(
+      uuid: 'placeholder',
+      stage: 'assigned',
+      assignmentId: 0,
+      code: 'TX-000000',
+      serviceType: 'private',
+      tripType: 'outbound',
+      customerName: 'Customer name',
+      customerPhone: '+855000000000',
+      routeOrigin: 'Siem Reap',
+      routeDestination: 'Phnom Penh',
+      pickup: Place(
+        locationName: 'Pickup location',
+        address: 'Pickup address, city, country',
+      ),
+      dropoff: Place(
+        locationName: 'Drop-off location',
+        address: 'Drop-off address, city, country',
+      ),
+      departureDatetime: soon,
+      allowedActions: const ['start'],
+      passengerCount: 1,
+      nationality: 'Nationality',
+      vehicleBooked: 'Vehicle class',
+      vehicleModel: 'Vehicle model',
+      vehiclePlate: '0A-00000',
+      vehicleColor: 'Colour',
+    );
+  }
+
   final String uuid;
   final String stage;
   final int? assignmentId;
@@ -250,9 +288,7 @@ class BookingDetail {
   /// `start_available_at` after a trip starts, stage alone still proves the
   /// trip is running, so a live booking never loses its step controls.
   bool get isUpcomingOnly =>
-      (startLocked || isStartWindowClosed) &&
-      stage == 'assigned' &&
-      !isClosed;
+      (startLocked || isStartWindowClosed) && stage == 'assigned' && !isClosed;
 
   /// Whether this assignment belongs to a two-leg trip contract.
   bool get hasReturn => isRoundTrip;

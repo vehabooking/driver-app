@@ -39,6 +39,16 @@ class DashboardSummary {
     this.upcoming = const [],
   });
 
+  /// Dummy summary so the Home skeleton has a card and a row to trace.
+  factory DashboardSummary.placeholder() => DashboardSummary(
+    status: 'active',
+    statusLabel: 'Active',
+    active: true,
+    counts: const DashboardCounts(),
+    nextPickup: BookingListItem.placeholder(),
+    upcoming: [BookingListItem.placeholder()],
+  );
+
   /// Verification status: pending · approved · rejected.
   final String status;
   final String statusLabel;

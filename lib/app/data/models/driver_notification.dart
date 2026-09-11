@@ -35,6 +35,22 @@ class DriverNotification {
     this.createdAtHuman,
   });
 
+  /// Dummy row so the list skeleton traces a real tile.
+  factory DriverNotification.placeholder() => DriverNotification(
+    id: 'placeholder',
+    type: 'trip_assigned',
+    title: 'Notification title',
+    message: 'Notification message line',
+    data: const {},
+    isRead: true,
+    bookingCode: 'TX-000000',
+    routeOrigin: 'Siem Reap',
+    routeDestination: 'Phnom Penh',
+    departureAt: DateTime.now()
+        .add(const Duration(hours: 3))
+        .toIso8601String(),
+  );
+
   final String id;
   final String type;
   final String title;

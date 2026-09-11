@@ -11,6 +11,7 @@ import '../../core/widgets/state_views.dart';
 import '../../data/models/driver_document.dart';
 import 'documents_controller.dart';
 import '../../core/theme/app_ink.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class DocumentsView extends GetView<DocumentsController> {
   const DocumentsView({super.key});
@@ -33,56 +34,63 @@ class DocumentsView extends GetView<DocumentsController> {
         ),
       ),
       body: Obx(() {
-        if (controller.isLoading.value) return const LoadingView();
         if (controller.error.value != null) {
           return ErrorView(
             message: controller.error.value!,
             onRetry: controller.load,
           );
         }
-        if (controller.docs.isEmpty) {
+        final loading = controller.isLoading.value;
+        if (!loading && controller.docs.isEmpty) {
           return EmptyView(
             title: 'no_documents'.tr,
             icon: IconsaxPlusLinear.document_text,
           );
         }
+        final docs = loading
+            ? List.generate(2, (_) => DriverDocument.placeholder())
+            : controller.docs.toList();
+
         return RefreshIndicator(
           onRefresh: controller.load,
-          child: ListView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.pageH,
-              vertical: AppSpacing.lg,
-            ),
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    IconsaxPlusLinear.lock_1,
-                    size: 16,
-                    color: theme.inkMuted(0.7),
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      'documents_note'.tr,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w600,
-                        height: 1.3,
-                        color: theme.inkMuted(0.7),
+          child: Skeletonizer(
+            enabled: loading,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.pageH,
+                vertical: AppSpacing.lg,
+              ),
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      IconsaxPlusLinear.lock_1,
+                      size: 16,
+                      color: theme.inkMuted(0.7),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        'documents_note'.tr,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                          color: theme.inkMuted(0.7),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ...controller.docs.map(
-                (d) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  child: _DocumentCard(doc: d),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.lg),
+                ...docs.map(
+                  (d) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                    child: _DocumentCard(doc: d),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       }),

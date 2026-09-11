@@ -20,6 +20,8 @@ import '../../data/models/booking_list_item.dart';
 import '../booking_detail/dispatch_review_sheet.dart';
 import 'dashboard_controller.dart';
 import '../../core/theme/app_ink.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import '../../data/models/dashboard_summary.dart';
 
 /// Clean operational card surface: white, subtle border, restrained shadow.
 BoxDecoration _softCard(BuildContext context) {
@@ -56,9 +58,6 @@ class DashboardView extends GetView<DashboardController> {
     return Scaffold(
       backgroundColor: canvas,
       body: Obx(() {
-        if (controller.isLoading.value && controller.summary.value == null) {
-          return const LoadingView();
-        }
         if (controller.error.value != null &&
             controller.summary.value == null) {
           return ErrorView(
@@ -66,7 +65,15 @@ class DashboardView extends GetView<DashboardController> {
             onRetry: controller.load,
           );
         }
-        final upcoming = controller.summary.value?.upcoming ?? const [];
+
+        // First load renders the real page from a dummy summary, traced by
+        // Skeletonizer. Refreshes keep the data on screen instead.
+        final loading =
+            controller.isLoading.value && controller.summary.value == null;
+        final summary = loading
+            ? DashboardSummary.placeholder()
+            : controller.summary.value;
+        final upcoming = summary?.upcoming ?? const [];
 
         return Container(
           decoration: BoxDecoration(color: canvas),
@@ -75,37 +82,40 @@ class DashboardView extends GetView<DashboardController> {
             child: RefreshIndicator(
               color: AppColors.primary,
               onRefresh: controller.load,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.pageH,
-                  AppSpacing.lg,
-                  AppSpacing.pageH,
-                  AppSpacing.navClearance + AppSpacing.lg,
+              child: Skeletonizer(
+                enabled: loading,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.pageH,
+                    AppSpacing.lg,
+                    AppSpacing.pageH,
+                    AppSpacing.navClearance + AppSpacing.lg,
+                  ),
+                  children: [
+                    _Hero(controller: controller),
+                    const SizedBox(height: AppSpacing.xl),
+                    // The one trip to act on, or its own empty template. It sits
+                    // directly under the hero with no header - the card carries
+                    // its own status chip, so a label above it only added noise.
+                    _nextPickup(context, summary),
+                    const SizedBox(height: AppSpacing.xxl),
+                    // UPCOMING — the queue, or its own empty template.
+                    SectionLabel('section_upcoming'.tr),
+                    const SizedBox(height: AppSpacing.lg),
+                    if (upcoming.isNotEmpty) ...[
+                      for (final b in upcoming) ...[
+                        _UpcomingItem(booking: b, controller: controller),
+                        const SizedBox(height: AppSpacing.sm),
+                      ],
+                    ] else
+                      _emptyUpcoming(),
+                    const SizedBox(height: AppSpacing.xxl),
+                    SectionLabel('overview'.tr),
+                    const SizedBox(height: AppSpacing.lg),
+                    _stats(summary),
+                  ],
                 ),
-                children: [
-                  _Hero(controller: controller),
-                  const SizedBox(height: AppSpacing.xl),
-                  // The one trip to act on, or its own empty template. It sits
-                  // directly under the hero with no header - the card carries
-                  // its own status chip, so a label above it only added noise.
-                  _nextPickup(context),
-                  const SizedBox(height: AppSpacing.xxl),
-                  // UPCOMING — the queue, or its own empty template.
-                  SectionLabel('section_upcoming'.tr),
-                  const SizedBox(height: AppSpacing.lg),
-                  if (upcoming.isNotEmpty) ...[
-                    for (final b in upcoming) ...[
-                      _UpcomingItem(booking: b, controller: controller),
-                      const SizedBox(height: AppSpacing.sm),
-                    ],
-                  ] else
-                    _emptyUpcoming(),
-                  const SizedBox(height: AppSpacing.xxl),
-                  SectionLabel('overview'.tr),
-                  const SizedBox(height: AppSpacing.lg),
-                  _stats(),
-                ],
               ),
             ),
           ),
@@ -114,8 +124,8 @@ class DashboardView extends GetView<DashboardController> {
     );
   }
 
-  Widget _nextPickup(BuildContext context) {
-    final next = controller.summary.value?.nextPickup;
+  Widget _nextPickup(BuildContext context, DashboardSummary? summary) {
+    final next = summary?.nextPickup;
     if (next == null) {
       return _emptyNow().animate().fadeIn(duration: 300.ms).slideY(begin: 0.04);
     }
@@ -173,8 +183,8 @@ class DashboardView extends GetView<DashboardController> {
     hint: 'empty_upcoming_hint'.tr,
   );
 
-  Widget _stats() {
-    final counts = controller.summary.value?.counts;
+  Widget _stats(DashboardSummary? summary) {
+    final counts = summary?.counts;
     final items = [
       ('assigned', counts?.assigned ?? 0, 'tab_assigned'),
       ('active', counts?.active ?? 0, 'tab_active'),
@@ -773,27 +783,30 @@ class _NextPickupCard extends StatelessWidget {
   }
 
   Widget _routeDot(Color color) {
-    return Container(
-      width: 16,
-      height: 16,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.20),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Container(
-          width: 5,
-          height: 5,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.96),
-            shape: BoxShape.circle,
+    return Skeleton.replace(
+      replacement: const Bone.circle(size: 16),
+      child: Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.20),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.96),
+              shape: BoxShape.circle,
+            ),
           ),
         ),
       ),
@@ -801,10 +814,13 @@ class _NextPickupCard extends StatelessWidget {
   }
 
   Widget _routePin(Color color) {
-    return SizedBox(
-      width: 18,
-      height: 21,
-      child: Icon(Icons.location_on_rounded, size: 21, color: color),
+    return Skeleton.replace(
+      replacement: const Bone.circle(size: 18),
+      child: SizedBox(
+        width: 18,
+        height: 21,
+        child: Icon(Icons.location_on_rounded, size: 21, color: color),
+      ),
     );
   }
 
@@ -914,7 +930,7 @@ class _NextPickupCard extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       textAlign: TextAlign.right,
       style: theme.textTheme.labelLarge?.copyWith(
-        color: highlighted ? AppColors.primary : AppColors.secondary,
+        color: highlighted ? AppColors.primary : theme.ink,
         fontWeight: highlighted ? FontWeight.w800 : FontWeight.w600,
         fontSize: highlighted ? 17 : 12.5,
         height: 1.1,
@@ -1081,14 +1097,20 @@ class _NextPickupCard extends StatelessWidget {
 
     final started = action != 'start';
 
-    return Obx(
-      () => StepActionButton(
-        key: const ValueKey('next-pickup-route-action'),
-        label: _routeActionLabel(action),
-        // A preview before setting off, live guidance once the trip is running.
-        icon: started ? IconsaxPlusLinear.gps : IconsaxPlusLinear.routing_2,
-        loading: controller.isActing.value,
-        onPressed: controller.openNextPickupMap,
+    // StepActionButton paints a filled brand background and an animated glow,
+    // neither of which Skeletonizer can neutralise - so while loading it is
+    // swapped for a plain button-shaped bone.
+    return Skeleton.replace(
+      replacement: const Bone.button(height: 52, width: double.infinity),
+      child: Obx(
+        () => StepActionButton(
+          key: const ValueKey('next-pickup-route-action'),
+          label: _routeActionLabel(action),
+          // A preview before setting off, live guidance once the trip is running.
+          icon: started ? IconsaxPlusLinear.gps : IconsaxPlusLinear.routing_2,
+          loading: controller.isActing.value,
+          onPressed: controller.openNextPickupMap,
+        ),
       ),
     );
   }

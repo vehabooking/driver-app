@@ -8,6 +8,7 @@ import '../../../core/widgets/collect_payment_pill.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/booking_list_item.dart';
 import '../../../core/theme/app_ink.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 /// Tappable summary card for one driver trip leg.
 class BookingCard extends StatelessWidget {
@@ -231,17 +232,20 @@ class BookingCard extends StatelessWidget {
   }
 
   Widget _routeDot(Color color) {
-    return Container(
-      width: 16,
-      height: 16,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      child: Center(
-        child: Container(
-          width: 5,
-          height: 5,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.96),
-            shape: BoxShape.circle,
+    return Skeleton.replace(
+      replacement: const Bone.circle(size: 16),
+      child: Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        child: Center(
+          child: Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.96),
+              shape: BoxShape.circle,
+            ),
           ),
         ),
       ),
@@ -249,10 +253,13 @@ class BookingCard extends StatelessWidget {
   }
 
   Widget _routePin(Color color) {
-    return SizedBox(
-      width: 18,
-      height: 21,
-      child: Icon(Icons.location_on_rounded, size: 21, color: color),
+    return Skeleton.replace(
+      replacement: const Bone.circle(size: 18),
+      child: SizedBox(
+        width: 18,
+        height: 21,
+        child: Icon(Icons.location_on_rounded, size: 21, color: color),
+      ),
     );
   }
 
@@ -407,7 +414,7 @@ class BookingCard extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.right,
           style: theme.textTheme.labelLarge?.copyWith(
-            color: muted ? theme.colorScheme.outline : AppColors.secondary,
+            color: muted ? theme.inkMuted(0.6) : theme.ink,
             fontWeight: muted ? FontWeight.w500 : FontWeight.w700,
             fontSize: muted ? 11.5 : 12.5,
             letterSpacing: 0,

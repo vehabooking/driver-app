@@ -54,6 +54,42 @@ class BookingListItem {
     this.payment = BookingPayment.none,
   });
 
+  /// Plausible dummy row used only to give [Skeletonizer] a real card to
+  /// trace while the list loads. Every field the card reads is filled, and
+  /// the strings are roughly the length of real ones so the placeholder bars
+  /// land where the data will.
+  factory BookingListItem.placeholder() {
+    // Far enough ahead that none of the overdue/stale branches fire, so the
+    // skeleton shows the ordinary card - including the action button, whose
+    // space must be reserved or the card jumps when real data lands.
+    final soon = DateTime.now()
+        .add(const Duration(hours: 3))
+        .toUtc()
+        .toIso8601String();
+
+    return BookingListItem(
+      uuid: 'placeholder',
+      stage: 'assigned',
+      assignmentId: 0,
+      code: 'TX-000000',
+      serviceType: 'private',
+      tripType: 'outbound',
+      customerName: 'Customer name',
+      customerPhone: '+855000000000',
+      routeOrigin: 'Siem Reap',
+      routeDestination: 'Phnom Penh',
+      pickupLocationName: 'Pickup location',
+      dropoffLocationName: 'Drop-off location',
+      departureDatetime: soon,
+      passengerCount: 1,
+      allowedActions: const ['start'],
+      vehicleBooked: 'Vehicle class',
+      vehicleModel: 'Vehicle model',
+      vehiclePlate: '0A-00000',
+      vehicleColor: 'Colour',
+    );
+  }
+
   final String uuid;
   final String stage;
   final int? assignmentId;

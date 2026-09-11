@@ -21,6 +21,7 @@ import '../../data/models/place.dart';
 import 'booking_detail_controller.dart';
 import 'dispatch_review_sheet.dart';
 import '../../core/theme/app_ink.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class BookingDetailView extends GetView<BookingDetailController> {
   const BookingDetailView({super.key});
@@ -68,19 +69,34 @@ class BookingDetailView extends GetView<BookingDetailController> {
         ),
       ),
       body: Obx(() {
-        if (controller.isLoading.value) return const LoadingView();
         if (controller.error.value != null) {
           return ErrorView(
             message: controller.error.value!,
             onRetry: controller.load,
           );
         }
-        final b = controller.booking.value;
+
+        // The real screen is rendered from a dummy booking and traced by
+        // Skeletonizer, so the placeholder always matches the layout.
+        final loading = controller.isLoading.value;
+        final b = loading
+            ? BookingDetail.placeholder()
+            : controller.booking.value;
         if (b == null) return _EmptyDetailState(onRetry: controller.load);
-        return _Detail(b: b, controller: controller);
+
+        return Skeletonizer(
+          enabled: loading,
+          child: _Detail(b: b, controller: controller),
+        );
       }),
       bottomNavigationBar: Obx(() {
-        final b = controller.booking.value;
+        // The footer lives outside the body's Skeletonizer, so it needs its
+        // own - otherwise a live, tappable action button sits under a
+        // skeletonized page while the booking reloads.
+        final loading = controller.isLoading.value;
+        final b = loading
+            ? BookingDetail.placeholder()
+            : controller.booking.value;
         if (b == null) return const SizedBox.shrink();
 
         // The server is authoritative about actions. A trip whose start window
@@ -92,10 +108,18 @@ class BookingDetailView extends GetView<BookingDetailController> {
             b.pickup.hasCoordinates &&
             b.dropoff.hasCoordinates;
 
-        if (!b.can && !canPreviewRoute) {
+        if (!loading && !b.can && !canPreviewRoute) {
           return const SizedBox.shrink();
         }
-        return _StickyFooter(b: b, controller: controller);
+
+        return Skeletonizer(
+          enabled: loading,
+          // A skeleton must never accept a tap that advances a trip.
+          child: AbsorbPointer(
+            absorbing: loading,
+            child: _StickyFooter(b: b, controller: controller),
+          ),
+        );
       }),
     );
   }
@@ -655,22 +679,29 @@ class _Detail extends StatelessWidget {
   Widget _detailStatusBadge(ThemeData theme) {
     final color = AppColors.forStage(b.stage);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.11),
-        borderRadius: BorderRadius.circular(999),
+    return Skeleton.replace(
+      replacement: const Bone(
+        height: 26,
+        width: 76,
+        borderRadius: BorderRadius.all(Radius.circular(999)),
       ),
-      child: Text(
-        'stage_${b.stage}'.tr,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w800,
-          fontSize: 11,
-          letterSpacing: 0,
-          height: 1,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.11),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          'stage_${b.stage}'.tr,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w800,
+            fontSize: 11,
+            letterSpacing: 0,
+            height: 1,
+          ),
         ),
       ),
     );
@@ -1261,38 +1292,44 @@ class _Detail extends StatelessWidget {
 
   Widget _routeMarker({required bool isOrigin}) {
     if (!isOrigin) {
-      return const SizedBox(
-        width: 18,
-        height: 21,
-        child: Icon(
-          Icons.location_on_rounded,
-          size: 21,
-          color: AppColors.cancelled,
+      return const Skeleton.replace(
+        replacement: Bone.circle(size: 18),
+        child: SizedBox(
+          width: 18,
+          height: 21,
+          child: Icon(
+            Icons.location_on_rounded,
+            size: 21,
+            color: AppColors.cancelled,
+          ),
         ),
       );
     }
 
-    return Container(
-      width: 16,
-      height: 16,
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.20),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Container(
-          width: 5,
-          height: 5,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.96),
-            shape: BoxShape.circle,
+    return Skeleton.replace(
+      replacement: const Bone.circle(size: 16),
+      child: Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.20),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.96),
+              shape: BoxShape.circle,
+            ),
           ),
         ),
       ),
@@ -1693,10 +1730,13 @@ class _ActionBar extends StatelessWidget {
     final isFutureTrip = b.isUpcomingOnly;
 
     if (isFutureTrip) {
-      return StepActionButton(
-        label: 'view_pickup_route'.tr,
-        icon: IconsaxPlusLinear.routing_2,
-        onPressed: controller.openMap,
+      return Skeleton.replace(
+        replacement: const Bone.button(height: 52, width: double.infinity),
+        child: StepActionButton(
+          label: 'view_pickup_route'.tr,
+          icon: IconsaxPlusLinear.routing_2,
+          onPressed: controller.openMap,
+        ),
       );
     }
 
@@ -1721,11 +1761,14 @@ class _ActionBar extends StatelessWidget {
       // trip once it is running.
       final isStart = b.allows('start');
 
-      return StepActionButton(
-        label: isStart ? 'view_pickup_route'.tr : 'track_your_trip'.tr,
-        icon: isStart ? IconsaxPlusLinear.routing_2 : IconsaxPlusLinear.gps,
-        loading: controller.isActing.value,
-        onPressed: controller.openMap,
+      return Skeleton.replace(
+        replacement: const Bone.button(height: 52, width: double.infinity),
+        child: StepActionButton(
+          label: isStart ? 'view_pickup_route'.tr : 'track_your_trip'.tr,
+          icon: isStart ? IconsaxPlusLinear.routing_2 : IconsaxPlusLinear.gps,
+          loading: controller.isActing.value,
+          onPressed: controller.openMap,
+        ),
       );
     });
   }
