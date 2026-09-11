@@ -10,6 +10,7 @@ import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/state_views.dart';
 import '../../data/models/driver_notification.dart';
 import 'notifications_controller.dart';
+import '../../core/theme/app_ink.dart';
 
 class NotificationsView extends GetView<NotificationsController> {
   const NotificationsView({super.key});
@@ -76,7 +77,7 @@ class _Header extends GetView<NotificationsController> {
               child: Text(
                 'notifications_title'.tr,
                 style: theme.textTheme.titleLarge?.copyWith(
-                  color: AppColors.secondary,
+                  color: theme.ink,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0,
                 ),
@@ -227,7 +228,7 @@ class _FilterTab extends StatelessWidget {
             style: theme.textTheme.labelLarge?.copyWith(
               color: selected
                   ? AppColors.secondary
-                  : AppColors.secondary.withValues(alpha: 0.62),
+                  : theme.inkMuted(0.62),
               fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
               letterSpacing: 0,
             ),
@@ -301,7 +302,9 @@ class _EmptyNotifications extends StatelessWidget {
           vertical: AppSpacing.xxxl,
         ),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.60),
+          color: theme.brightness == Brightness.dark
+              ? theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.6)
+              : Colors.white.withValues(alpha: 0.60),
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
           border: Border.all(
             color: AppColors.secondary.withValues(alpha: 0.05),
@@ -327,7 +330,7 @@ class _EmptyNotifications extends StatelessWidget {
             Text(
               'notifications_empty_title'.tr,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: AppColors.secondary,
+                color: theme.ink,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0,
               ),
@@ -337,7 +340,7 @@ class _EmptyNotifications extends StatelessWidget {
             Text(
               'notifications_empty_message'.tr,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.secondary.withValues(alpha: 0.54),
+                color: theme.inkMuted(0.54),
                 height: 1.42,
                 letterSpacing: 0,
               ),
@@ -386,7 +389,7 @@ class _NotificationTile extends GetView<NotificationsController> {
                   child: Text(
                     item.title,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      color: AppColors.secondary,
+                      color: theme.ink,
                       fontWeight: isUnread ? FontWeight.w700 : FontWeight.w600,
                       height: 1.16,
                     ),
@@ -413,7 +416,7 @@ class _NotificationTile extends GetView<NotificationsController> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelLarge?.copyWith(
-                  color: AppColors.secondary,
+                  color: theme.ink,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0,
                 ),
@@ -451,8 +454,8 @@ class _NotificationTile extends GetView<NotificationsController> {
                     TextSpan(text: '${'departure'.tr}: '),
                     TextSpan(
                       text: departure,
-                      style: const TextStyle(
-                        color: AppColors.secondary,
+                      style: TextStyle(
+                        color: theme.ink,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

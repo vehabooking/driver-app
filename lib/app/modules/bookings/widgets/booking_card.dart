@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/collect_payment_pill.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/booking_list_item.dart';
+import '../../../core/theme/app_ink.dart';
 
 /// Tappable summary card for one driver trip leg.
 class BookingCard extends StatelessWidget {
@@ -77,7 +78,7 @@ class BookingCard extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.labelLarge?.copyWith(
-            color: AppColors.secondary,
+            color: theme.ink,
             fontWeight: FontWeight.w800,
             fontSize: 13,
             letterSpacing: 0,
@@ -96,7 +97,7 @@ class BookingCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelMedium?.copyWith(
-              color: AppColors.secondary.withValues(alpha: 0.84),
+              color: theme.inkMuted(0.84),
               fontWeight: FontWeight.w500,
               fontSize: 12,
               letterSpacing: 0,
@@ -298,7 +299,7 @@ class BookingCard extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleSmall?.copyWith(
-            color: AppColors.secondary,
+            color: theme.ink,
             fontWeight: FontWeight.w700,
             fontSize: 15,
             letterSpacing: 0,
@@ -339,7 +340,7 @@ class BookingCard extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.right,
           style: theme.textTheme.labelLarge?.copyWith(
-            color: AppColors.secondary.withValues(alpha: 0.92),
+            color: theme.inkMuted(0.92),
             fontWeight: FontWeight.w600,
             fontSize: 13.5,
             letterSpacing: 0,
@@ -354,7 +355,7 @@ class BookingCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.right,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.secondary.withValues(alpha: 0.7),
+              color: theme.inkMuted(0.7),
               fontWeight: FontWeight.w600,
               fontSize: 12.5,
               height: 1.15,
@@ -477,7 +478,7 @@ class BookingCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.secondary,
+                    color: theme.ink,
                     fontWeight: FontWeight.w800,
                     fontSize: 14.5,
                     letterSpacing: 0,
@@ -491,7 +492,7 @@ class BookingCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.secondary.withValues(alpha: 0.74),
+                      color: theme.inkMuted(0.74),
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                       letterSpacing: 0,

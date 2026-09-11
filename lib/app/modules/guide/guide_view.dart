@@ -251,7 +251,7 @@ class _PlatformSupportSection extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Card(
-            color: Colors.white,
+            color: theme.cardColor,
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(26),
@@ -589,7 +589,7 @@ class _SupportLoadingCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
-      color: Colors.white,
+      color: theme.cardColor,
       elevation: 0,
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -695,7 +695,7 @@ class _VideoCardState extends State<_VideoCard> {
     final canReadMore = summary.length > 92;
 
     return Card(
-      color: Colors.white,
+      color: theme.cardColor,
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(

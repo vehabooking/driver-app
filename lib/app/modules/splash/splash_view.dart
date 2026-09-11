@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../core/widgets/veha_logo_draw.dart';
 import 'splash_controller.dart';
 import '../../core/config/app_config.dart';
+import '../../core/theme/app_colors.dart';
 
 /// First screen on every launch — a quiet brand mark pulses while
 /// [SplashController] resolves the driver's next screen.

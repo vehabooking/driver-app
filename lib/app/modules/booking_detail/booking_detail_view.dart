@@ -20,6 +20,7 @@ import '../../data/models/booking_detail.dart';
 import '../../data/models/place.dart';
 import 'booking_detail_controller.dart';
 import 'dispatch_review_sheet.dart';
+import '../../core/theme/app_ink.dart';
 
 class BookingDetailView extends GetView<BookingDetailController> {
   const BookingDetailView({super.key});
@@ -28,9 +29,9 @@ class BookingDetailView extends GetView<BookingDetailController> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.canvas,
+      backgroundColor: theme.canvas,
       appBar: AppBar(
-        backgroundColor: AppColors.canvas,
+        backgroundColor: theme.canvas,
         surfaceTintColor: Colors.transparent,
         toolbarHeight: 74,
         titleSpacing: 0,
@@ -422,7 +423,7 @@ class _Detail extends StatelessWidget {
                     Text(
                       'collect_from_passenger'.tr,
                       style: theme.textTheme.titleSmall?.copyWith(
-                        color: AppColors.secondary,
+                        color: theme.ink,
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
                         letterSpacing: 0,
@@ -461,7 +462,9 @@ class _Detail extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.72),
+        color: theme.brightness == Brightness.dark
+            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+            : Colors.white.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         border: Border.all(color: AppColors.assigned.withValues(alpha: 0.20)),
       ),
@@ -495,7 +498,7 @@ class _Detail extends StatelessWidget {
                 Text(
                   note,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.secondary,
+                    color: theme.ink,
                     fontWeight: FontWeight.w600,
                     fontSize: 12.5,
                     height: 1.25,
@@ -747,7 +750,7 @@ class _Detail extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.labelSmall?.copyWith(
-            color: AppColors.secondary.withValues(alpha: 0.62),
+            color: theme.inkMuted(0.62),
             fontWeight: FontWeight.w800,
             letterSpacing: 0.3,
             fontSize: 12.5,
@@ -760,7 +763,7 @@ class _Detail extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           textAlign: alignEnd ? TextAlign.right : TextAlign.left,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.secondary,
+            color: theme.ink,
             fontWeight: FontWeight.w700,
             fontSize: 15,
             height: 1.16,
@@ -785,7 +788,7 @@ class _Detail extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: AppColors.secondary,
+                    color: theme.ink,
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
                     letterSpacing: 0,
@@ -869,7 +872,7 @@ class _Detail extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.secondary.withValues(alpha: 0.62),
+                    color: theme.inkMuted(0.62),
                     fontWeight: FontWeight.w800,
                     fontSize: 12,
                     letterSpacing: 0.3,
@@ -882,7 +885,7 @@ class _Detail extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.secondary,
+                    color: theme.ink,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                     letterSpacing: 0,
@@ -894,7 +897,7 @@ class _Detail extends StatelessWidget {
                   Text(
                     specs,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.secondary.withValues(alpha: 0.7),
+                      color: theme.inkMuted(0.7),
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                       height: 1.2,
@@ -929,7 +932,7 @@ class _Detail extends StatelessWidget {
           Text(
             value,
             style: theme.textTheme.labelMedium?.copyWith(
-              color: AppColors.secondary,
+              color: theme.ink,
               fontWeight: FontWeight.w700,
               fontSize: 13,
               letterSpacing: 0,
@@ -960,7 +963,7 @@ class _Detail extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelMedium?.copyWith(
-              color: AppColors.secondary.withValues(alpha: 0.72),
+              color: theme.inkMuted(0.72),
               fontWeight: FontWeight.w600,
               fontSize: 14,
               letterSpacing: 0,
@@ -972,7 +975,7 @@ class _Detail extends StatelessWidget {
             value,
             textAlign: TextAlign.right,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.secondary,
+              color: theme.ink,
               fontWeight: FontWeight.w700,
               fontSize: 14.5,
               letterSpacing: 0,
@@ -1084,7 +1087,7 @@ class _Detail extends StatelessWidget {
               Text(
                 legLabel,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: AppColors.secondary.withValues(alpha: 0.7),
+                  color: theme.inkMuted(0.7),
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0,
@@ -1114,7 +1117,7 @@ class _Detail extends StatelessWidget {
               Text(
                 'est_drop'.tr,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: AppColors.secondary.withValues(alpha: 0.7),
+                  color: theme.inkMuted(0.7),
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0,
@@ -1180,7 +1183,7 @@ class _Detail extends StatelessWidget {
                   Text(
                     (isOrigin ? 'pickup'.tr : 'dropoff'.tr).toUpperCase(),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.secondary.withValues(alpha: 0.62),
+                      color: theme.inkMuted(0.62),
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.3,
                       fontSize: 12.5,
@@ -1192,7 +1195,7 @@ class _Detail extends StatelessWidget {
                     place.label,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.secondary,
+                      color: theme.ink,
                       fontSize: 15,
                       height: 1.15,
                     ),
@@ -1202,7 +1205,7 @@ class _Detail extends StatelessWidget {
                     Text(
                       address,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.secondary.withValues(alpha: 0.75),
+                        color: theme.inkMuted(0.75),
                         fontWeight: FontWeight.w600,
                         fontSize: 13.5,
                         height: 1.3,
@@ -1333,7 +1336,7 @@ class _Detail extends StatelessWidget {
                       style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                         fontSize: 14.5,
-                        color: AppColors.secondary,
+                        color: theme.ink,
                         height: 1.1,
                       ),
                     ),
@@ -1341,7 +1344,7 @@ class _Detail extends StatelessWidget {
                     Text(
                       'operator'.tr,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.secondary.withValues(alpha: 0.66),
+                        color: theme.inkMuted(0.66),
                         fontWeight: FontWeight.w600,
                         fontSize: 12.5,
                       ),
@@ -1423,7 +1426,7 @@ class _Detail extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.secondary,
+                    color: theme.ink,
                     fontWeight: FontWeight.w700,
                     fontSize: 12.5,
                     letterSpacing: 0,
@@ -1510,7 +1513,7 @@ class _SectionCard extends StatelessWidget {
             Text(
               title!.toUpperCase(),
               style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.secondary.withValues(alpha: 0.62),
+                color: theme.inkMuted(0.62),
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.4,
                 fontSize: 12.5,
@@ -1732,7 +1735,7 @@ class _ActionBar extends StatelessWidget {
     const color = AppColors.cancelled;
 
     return Material(
-      color: Colors.white,
+      color: theme.cardColor,
       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

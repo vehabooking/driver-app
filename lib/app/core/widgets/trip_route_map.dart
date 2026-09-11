@@ -10,6 +10,7 @@ import '../../data/models/place.dart';
 import '../location/location_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_ink.dart';
 
 class TripRouteMap extends StatefulWidget {
   const TripRouteMap({
@@ -468,10 +469,10 @@ class _MapHeader extends StatelessWidget {
                       padding: EdgeInsets.all(13),
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(
+                  : Icon(
                       IconsaxPlusLinear.gps,
                       size: 20,
-                      color: AppColors.secondary,
+                      color: Theme.of(context).ink,
                     ),
             ),
           ),

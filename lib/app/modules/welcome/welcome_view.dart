@@ -9,6 +9,7 @@ import '../../core/i18n/app_translations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import 'welcome_controller.dart';
+import '../../core/theme/app_ink.dart';
 
 /// First-run welcome screen. Uses the designed travel artwork as the stage and
 /// keeps the interactive layer intentionally small: language, brand, headline,
@@ -26,7 +27,7 @@ class WelcomeView extends GetView<WelcomeController> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: AppColors.canvas,
+        backgroundColor: Theme.of(context).canvas,
         body: _WelcomeScene(
           topOffset: topOffset,
           compact: size.height < 760,
@@ -59,7 +60,7 @@ class WelcomeView extends GetView<WelcomeController> {
               style: theme.textTheme.labelMedium?.copyWith(
                 color: active
                     ? Colors.white
-                    : AppColors.secondary.withValues(alpha: 0.72),
+                    : theme.inkMuted(0.72),
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -175,7 +176,7 @@ class _WelcomeScene extends StatelessWidget {
                     'welcome_tagline_1'.tr,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.secondary.withValues(alpha: 0.72),
+                      color: theme.inkMuted(0.72),
                       fontWeight: FontWeight.w600,
                       height: 1.38,
                       letterSpacing: 0,
@@ -252,8 +253,9 @@ class _BrandTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final introStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-      color: AppColors.secondary,
+    final theme = Theme.of(context);
+    final introStyle = theme.textTheme.titleMedium?.copyWith(
+      color: theme.ink,
       fontWeight: FontWeight.w800,
       letterSpacing: 0,
     );
@@ -261,7 +263,7 @@ class _BrandTitle extends StatelessWidget {
       fontSize: compact ? 46 : 54,
       height: 0.98,
       fontWeight: FontWeight.w700,
-      color: AppColors.secondary,
+      color: theme.ink,
       letterSpacing: 0,
     );
 

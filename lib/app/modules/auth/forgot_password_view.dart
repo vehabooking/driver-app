@@ -10,6 +10,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/otp_code_input.dart';
 import 'forgot_password_controller.dart';
+import '../../core/theme/app_ink.dart';
 
 class ForgotPasswordView extends GetView<ForgotPasswordController> {
   const ForgotPasswordView({super.key});
@@ -59,7 +60,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
                             ),
                           ),
                           SizedBox(height: topGap),
-                          _brand(),
+                          _brand(context),
                           const SizedBox(height: AppSpacing.xl),
                           Obx(() => _headline(theme, scheme)),
                           const SizedBox(height: AppSpacing.xl),
@@ -78,7 +79,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
     );
   }
 
-  Widget _brand() => Column(
+  Widget _brand(BuildContext context) => Column(
     children: [
       Image.asset(
         'assets/branding/app_icon.png',
@@ -91,7 +92,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
           fontSize: 15,
           fontWeight: FontWeight.w700,
           letterSpacing: 2.7,
-          color: AppColors.secondary,
+          color: Theme.of(context).ink,
         ),
       ).animate().fadeIn(delay: 160.ms, duration: 420.ms),
     ],
@@ -589,14 +590,14 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
                   return AppColors.primary;
                 }
 
-                return AppColors.secondary.withValues(alpha: 0.62);
+                return theme.inkMuted(0.62);
               }),
               suffixIconColor: WidgetStateColor.resolveWith((states) {
                 if (states.contains(WidgetState.focused)) {
                   return AppColors.primary;
                 }
 
-                return AppColors.secondary.withValues(alpha: 0.62);
+                return theme.inkMuted(0.62);
               }),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.lg,

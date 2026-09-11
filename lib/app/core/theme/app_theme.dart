@@ -35,6 +35,9 @@ class AppTheme {
     );
 
     return base.copyWith(
+      // Widgets that paint their own card surface read this; without it they
+      // fall back to a light default and stay white on a dark page.
+      cardColor: colorScheme.surfaceContainerLow,
       textTheme: GoogleFonts.kantumruyProTextTheme(base.textTheme),
       appBarTheme: AppBarTheme(
         backgroundColor: colorScheme.surface,

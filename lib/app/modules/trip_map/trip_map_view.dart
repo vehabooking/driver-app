@@ -26,6 +26,7 @@ import '../../data/models/booking_detail.dart';
 import '../../data/models/place.dart';
 import '../../data/models/trip_route.dart';
 import '../../data/repositories/booking_repository.dart';
+import '../../core/theme/app_ink.dart';
 
 const _focusedMapStyle = '''
 [
@@ -131,7 +132,7 @@ class _TripMapViewState extends State<TripMapView> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _measureSheet());
 
     return Scaffold(
-      backgroundColor: AppColors.canvas,
+      backgroundColor: Theme.of(context).canvas,
       body: SizedBox.expand(
         child: Stack(
           fit: StackFit.expand,
@@ -573,10 +574,14 @@ class _TripMapViewState extends State<TripMapView> {
       constraints: const BoxConstraints(maxWidth: 190),
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
+        color: theme.brightness == Brightness.dark
+            ? theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.96)
+            : Colors.white.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.84),
+          color: theme.brightness == Brightness.dark
+              ? theme.colorScheme.outlineVariant.withValues(alpha: 0.5)
+              : Colors.white.withValues(alpha: 0.84),
           width: 1,
         ),
         boxShadow: [
@@ -606,7 +611,7 @@ class _TripMapViewState extends State<TripMapView> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelLarge?.copyWith(
-                color: AppColors.secondary,
+                color: theme.ink,
                 fontWeight: FontWeight.w800,
                 height: 1,
               ),
@@ -640,8 +645,11 @@ class _TripMapViewState extends State<TripMapView> {
     required VoidCallback onTap,
     bool loading = false,
   }) {
+    final theme = Theme.of(context);
     return Material(
-      color: Colors.white.withValues(alpha: 0.92),
+      color: theme.brightness == Brightness.dark
+          ? theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.96)
+          : Colors.white.withValues(alpha: 0.92),
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       elevation: 0,
@@ -655,7 +663,7 @@ class _TripMapViewState extends State<TripMapView> {
                   padding: EdgeInsets.all(13),
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Icon(icon, color: AppColors.secondary, size: 20),
+              : Icon(icon, color: Theme.of(context).ink, size: 20),
         ),
       ),
     );
@@ -1420,7 +1428,9 @@ class _RouteSheet extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPadding),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.brightness == Brightness.dark
+            ? theme.colorScheme.surfaceContainerHigh
+            : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: [
           BoxShadow(
@@ -1602,7 +1612,7 @@ class _PickupProximityNotice extends StatelessWidget {
                       ? 'pickup_arrival_zone_title'.tr
                       : 'pickup_nearby_title'.tr,
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color: AppColors.secondary,
+                    color: theme.ink,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -1680,7 +1690,7 @@ class _ExpandedRouteSheetBody extends StatelessWidget {
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w900,
                       height: 1,
-                      color: AppColors.secondary,
+                      color: theme.ink,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1770,7 +1780,12 @@ class _ExpandedRouteSheetBody extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           decoration: BoxDecoration(
-            color: AppColors.canvas.withValues(alpha: 0.72),
+            // A tint of the page surface, not a fixed light one.
+            color: theme.brightness == Brightness.dark
+                ? theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.5,
+                  )
+                : AppColors.canvas.withValues(alpha: 0.72),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Column(
@@ -1796,7 +1811,7 @@ class _ExpandedRouteSheetBody extends StatelessWidget {
                 badge: 'B',
                 label: 'dropoff_point_b'.tr,
                 place: args.dropoff,
-                color: AppColors.secondary,
+                color: theme.ink,
               ),
             ],
           ),
@@ -1888,7 +1903,7 @@ class _CollapsedRouteSheetBody extends StatelessWidget {
                       Text(
                         distanceLabel ?? 'route_preview'.tr,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          color: AppColors.secondary,
+                          color: theme.ink,
                           fontWeight: FontWeight.w900,
                           height: 1,
                         ),

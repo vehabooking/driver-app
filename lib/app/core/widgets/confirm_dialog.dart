@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_ink.dart';
 
 /// Asks the driver to confirm before an action runs.
 ///
@@ -72,7 +73,7 @@ Future<bool> showConfirmDialog({
           fontSize: 15,
           fontWeight: FontWeight.w500,
           height: 1.4,
-          color: AppColors.secondary.withValues(alpha: 0.78),
+          color: theme.inkMuted(0.78),
         ),
       ),
       actions: [

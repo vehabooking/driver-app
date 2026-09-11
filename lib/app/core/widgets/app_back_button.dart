@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_ink.dart';
 
 /// Shared iOS-style back affordance used by every pushed app screen.
 class AppBackButton extends StatelessWidget {
@@ -48,10 +49,10 @@ class AppBackButton extends StatelessWidget {
               ),
               child: Tooltip(
                 message: MaterialLocalizations.of(context).backButtonTooltip,
-                child: const Icon(
+                child: Icon(
                   CupertinoIcons.back,
                   size: 24,
-                  color: AppColors.secondary,
+                  color: Theme.of(context).ink,
                 ),
               ),
             ),

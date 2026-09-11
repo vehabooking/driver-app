@@ -13,6 +13,7 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/confirm_dialog.dart';
 import '../../core/widgets/section_label.dart';
 import 'profile_controller.dart';
+import '../../core/theme/app_ink.dart';
 
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
@@ -289,7 +290,7 @@ class _Identity extends StatelessWidget {
           style: theme.textTheme.bodySmall?.copyWith(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: AppColors.secondary.withValues(alpha: 0.72),
+            color: theme.inkMuted(0.72),
           ),
         ),
       ],
@@ -778,7 +779,7 @@ class _AvatarCircle extends StatelessWidget {
                   ? Text(
                       _initials(user?.name),
                       style: const TextStyle(
-                        color: AppColors.secondary,
+                        color: Colors.white,
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1059,7 +1060,7 @@ class _NavRow extends StatelessWidget {
                 subtitle!,
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontSize: 13.5,
-                  color: AppColors.secondary.withValues(alpha: 0.66),
+                  color: theme.inkMuted(0.66),
                 ),
               ),
         trailing: Icon(
@@ -1096,7 +1097,7 @@ class _CompactPrefs extends StatelessWidget {
           style: theme.textTheme.bodySmall?.copyWith(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: AppColors.secondary.withValues(alpha: 0.74),
+            color: theme.inkMuted(0.74),
           ),
         ),
         const Spacer(),

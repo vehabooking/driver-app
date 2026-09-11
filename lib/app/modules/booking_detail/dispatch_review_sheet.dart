@@ -5,6 +5,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../data/models/booking_detail.dart';
+import '../../core/theme/app_ink.dart';
 
 class DispatchReviewSheet extends StatelessWidget {
   const DispatchReviewSheet({
@@ -95,7 +96,7 @@ class DispatchReviewSheet extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleMedium?.copyWith(
-                              color: AppColors.secondary,
+                              color: theme.ink,
                               fontWeight: FontWeight.w800,
                               fontSize: 16,
                               letterSpacing: 0,

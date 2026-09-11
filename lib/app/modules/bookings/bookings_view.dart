@@ -9,14 +9,16 @@ import '../../core/widgets/state_views.dart';
 import '../../data/models/booking_list_item.dart';
 import 'bookings_controller.dart';
 import 'widgets/booking_card.dart';
+import '../../core/theme/app_ink.dart';
 
 class BookingsView extends GetView<BookingsController> {
   const BookingsView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.canvas,
+      backgroundColor: theme.canvas,
       body: SafeArea(
         bottom: false,
         child: Column(

@@ -10,6 +10,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/otp_code_input.dart';
 import 'device_takeover_controller.dart';
+import '../../core/theme/app_ink.dart';
 
 /// OTP step of the "use this phone instead" flow. Mirrors the forgot-password
 /// verify step so the two code screens feel like one.
@@ -51,7 +52,7 @@ class DeviceTakeoverView extends GetView<DeviceTakeoverController> {
                         child: AppBackButton(onPressed: controller.goBack),
                       ),
                       SizedBox(height: topGap),
-                      _brand(),
+                      _brand(context),
                       const SizedBox(height: AppSpacing.xl),
                       _headline(theme, scheme),
                       const SizedBox(height: AppSpacing.xl),
@@ -68,7 +69,7 @@ class DeviceTakeoverView extends GetView<DeviceTakeoverController> {
     );
   }
 
-  Widget _brand() => Column(
+  Widget _brand(BuildContext context) => Column(
     children: [
       Image.asset(
         'assets/branding/app_icon.png',
@@ -81,7 +82,7 @@ class DeviceTakeoverView extends GetView<DeviceTakeoverController> {
           fontSize: 15,
           fontWeight: FontWeight.w700,
           letterSpacing: 2.7,
-          color: AppColors.secondary,
+          color: Theme.of(context).ink,
         ),
       ).animate().fadeIn(delay: 160.ms, duration: 420.ms),
     ],

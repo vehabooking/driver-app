@@ -19,6 +19,7 @@ import '../../core/widgets/trip_step_tracker.dart';
 import '../../data/models/booking_list_item.dart';
 import '../booking_detail/dispatch_review_sheet.dart';
 import 'dashboard_controller.dart';
+import '../../core/theme/app_ink.dart';
 
 /// Clean operational card surface: white, subtle border, restrained shadow.
 BoxDecoration _softCard(BuildContext context) {
@@ -443,7 +444,7 @@ class _UpcomingItem extends StatelessWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0,
-                        color: AppColors.secondary.withValues(alpha: 0.6),
+                        color: theme.inkMuted(0.6),
                       ),
                     ),
                     const SizedBox(height: 1),
@@ -472,7 +473,7 @@ class _UpcomingItem extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelLarge?.copyWith(
                         fontSize: 15,
-                        color: AppColors.secondary,
+                        color: theme.ink,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0,
                       ),
@@ -497,7 +498,7 @@ class _UpcomingItem extends StatelessWidget {
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         height: 1.25,
-                        color: AppColors.secondary.withValues(alpha: 0.85),
+                        color: theme.inkMuted(0.85),
                       ),
                     ),
                   ],
@@ -507,7 +508,7 @@ class _UpcomingItem extends StatelessWidget {
               Icon(
                 IconsaxPlusLinear.arrow_right_3,
                 size: 18,
-                color: AppColors.secondary.withValues(alpha: 0.5),
+                color: theme.inkMuted(0.5),
               ),
             ],
           ),
@@ -624,7 +625,7 @@ class _NextPickupCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleSmall?.copyWith(
-                color: AppColors.secondary,
+                color: theme.ink,
                 fontWeight: FontWeight.w800,
                 fontSize: 14,
                 letterSpacing: 0,
@@ -837,7 +838,7 @@ class _NextPickupCard extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleSmall?.copyWith(
-            color: AppColors.secondary,
+            color: theme.ink,
             fontWeight: FontWeight.w700,
             fontSize: 15,
             letterSpacing: 0,
@@ -875,7 +876,7 @@ class _NextPickupCard extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       textAlign: TextAlign.right,
       style: theme.textTheme.labelMedium?.copyWith(
-        color: AppColors.secondary,
+        color: theme.ink,
         fontWeight: FontWeight.w700,
         fontSize: 12.5,
         height: 1.1,
@@ -946,7 +947,7 @@ class _NextPickupCard extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.right,
           style: theme.textTheme.labelLarge?.copyWith(
-            color: AppColors.secondary.withValues(alpha: 0.92),
+            color: theme.inkMuted(0.92),
             fontWeight: FontWeight.w600,
             fontSize: 13.5,
             height: 1.15,
@@ -961,7 +962,7 @@ class _NextPickupCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.right,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.secondary.withValues(alpha: 0.7),
+              color: theme.inkMuted(0.7),
               fontWeight: FontWeight.w600,
               fontSize: 12.5,
               height: 1.15,
@@ -1018,7 +1019,7 @@ class _NextPickupCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color: AppColors.secondary,
+                    color: theme.ink,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1137,7 +1138,7 @@ class _NextPickupCard extends StatelessWidget {
               key.tr,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontSize: 12.5,
-                color: AppColors.secondary,
+                color: theme.ink,
                 fontWeight: FontWeight.w600,
                 height: 1.25,
               ),
@@ -1193,7 +1194,7 @@ class _NextPickupCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.secondary.withValues(alpha: 0.72),
+                        color: theme.inkMuted(0.72),
                         fontWeight: FontWeight.w500,
                         fontSize: 11.5,
                         height: 1.15,
@@ -1360,7 +1361,7 @@ class _StatCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0,
                 height: 1.15,
-                color: AppColors.secondary.withValues(alpha: 0.72),
+                color: theme.inkMuted(0.72),
               ),
             ),
           ],

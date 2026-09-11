@@ -10,6 +10,7 @@ import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/state_views.dart';
 import '../../data/models/driver_document.dart';
 import 'documents_controller.dart';
+import '../../core/theme/app_ink.dart';
 
 class DocumentsView extends GetView<DocumentsController> {
   const DocumentsView({super.key});
@@ -58,7 +59,7 @@ class DocumentsView extends GetView<DocumentsController> {
                   Icon(
                     IconsaxPlusLinear.lock_1,
                     size: 16,
-                    color: AppColors.secondary.withValues(alpha: 0.7),
+                    color: theme.inkMuted(0.7),
                   ),
                   const SizedBox(width: 7),
                   Expanded(
@@ -68,7 +69,7 @@ class DocumentsView extends GetView<DocumentsController> {
                         fontSize: 14.5,
                         fontWeight: FontWeight.w600,
                         height: 1.3,
-                        color: AppColors.secondary.withValues(alpha: 0.7),
+                        color: theme.inkMuted(0.7),
                       ),
                     ),
                   ),

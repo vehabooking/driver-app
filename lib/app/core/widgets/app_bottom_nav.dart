@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_ink.dart';
 
 /// One destination in [AppBottomNav].
 class AppNavItem {
@@ -110,10 +111,8 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final color = selected
-        ? scheme.primary
-        : AppColors.secondary.withValues(alpha: 0.6);
+    final theme = Theme.of(context);
+    final color = selected ? theme.colorScheme.primary : theme.inkMuted(0.6);
 
     return InkWell(
       onTap: onTap,
@@ -124,7 +123,7 @@ class _NavButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
           color: selected
-              ? scheme.primary.withValues(alpha: 0.12)
+              ? theme.colorScheme.primary.withValues(alpha: 0.12)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
         ),
