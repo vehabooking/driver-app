@@ -11,12 +11,10 @@ import '../../core/utils/formatters.dart';
 import '../../core/widgets/collect_payment_pill.dart';
 import '../../core/widgets/confirm_dialog.dart';
 import '../../core/widgets/arrival_rule_note.dart';
-import '../../core/widgets/pickup_issue_sheet.dart';
 import '../../core/widgets/section_label.dart';
 import '../../core/widgets/stale_trip_notice.dart';
 import '../../core/widgets/state_views.dart';
 import '../../core/widgets/step_action_button.dart';
-import '../../core/widgets/swipe_to_confirm.dart';
 import '../../core/widgets/trip_step_tracker.dart';
 import '../../data/models/booking_list_item.dart';
 import '../booking_detail/dispatch_review_sheet.dart';
@@ -296,7 +294,7 @@ class _Hero extends StatelessWidget {
                                       .toString(),
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 9,
+                              fontSize: 10,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
@@ -377,7 +375,7 @@ class _StatusText extends StatelessWidget {
       return Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          fontSize: 11,
+          fontSize: 12,
           color: color,
           fontWeight: FontWeight.w700,
         ),
@@ -432,7 +430,7 @@ class _UpcomingItem extends StatelessWidget {
           child: Row(
             children: [
               SizedBox(
-                width: 72,
+                width: 80,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -442,8 +440,10 @@ class _UpcomingItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: theme.colorScheme.outline,
+                        letterSpacing: 0,
+                        color: AppColors.secondary.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(height: 1),
@@ -452,7 +452,9 @@ class _UpcomingItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
                         color: AppColors.primary,
                       ),
                     ),
@@ -469,8 +471,9 @@ class _UpcomingItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelLarge?.copyWith(
+                        fontSize: 15,
                         color: AppColors.secondary,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: 0,
                       ),
                     ),
@@ -480,16 +483,21 @@ class _UpcomingItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 12.5,
                         color: AppColors.primary,
                         fontWeight: FontWeight.w700,
+                        letterSpacing: 0,
                       ),
                     ),
                     Text(
                       '${booking.driverRouteOriginLabel} to ${booking.driverRouteDestinationLabel}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.outline,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                        color: AppColors.secondary.withValues(alpha: 0.85),
                       ),
                     ),
                   ],
@@ -499,7 +507,7 @@ class _UpcomingItem extends StatelessWidget {
               Icon(
                 IconsaxPlusLinear.arrow_right_3,
                 size: 18,
-                color: theme.colorScheme.outline,
+                color: AppColors.secondary.withValues(alpha: 0.5),
               ),
             ],
           ),
@@ -514,11 +522,6 @@ class _NextPickupCard extends StatelessWidget {
 
   final BookingListItem next;
   final DashboardController controller;
-
-  bool get _showsDropoffRoute =>
-      next.stage == 'meet_passenger' ||
-      next.stage == 'drop_passenger' ||
-      next.nextAction == 'complete';
 
   @override
   Widget build(BuildContext context) {
@@ -546,10 +549,6 @@ class _NextPickupCard extends StatelessWidget {
               ],
               const SizedBox(height: AppSpacing.md),
               _routeScheduleGrid(theme),
-              if (next.hasDropoff) ...[
-                const SizedBox(height: AppSpacing.sm),
-                _routeActionButton(theme),
-              ],
               if (next.isStartOverdue && !next.isStartTooOld) ...[
                 const SizedBox(height: AppSpacing.sm),
                 _startOverdueNotice(theme),
@@ -581,10 +580,6 @@ class _NextPickupCard extends StatelessWidget {
               if (next.nextAction != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 _action(theme, next.nextAction!),
-                if (_canReportPickupIssue) ...[
-                  const SizedBox(height: 2),
-                  _pickupIssueButton(context, theme),
-                ],
               ],
             ],
           ),
@@ -615,61 +610,57 @@ class _NextPickupCard extends StatelessWidget {
   }
 
   Widget _cardHeader(ThemeData theme) {
+    // The chip only earns its place when something is actually wrong. On a
+    // normal trip it read "NEEDS ACTION" on every single card, which says
+    // nothing the button below it does not already say.
+    final showReviewChip = next.needsResolution;
+
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-          decoration: BoxDecoration(
-            color:
-                (next.needsResolution ? AppColors.assigned : AppColors.primary)
-                    .withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                next.needsResolution
-                    ? IconsaxPlusLinear.timer_1
-                    : IconsaxPlusLinear.flash_1,
-                size: 12,
-                color: next.needsResolution
-                    ? AppColors.assigned
-                    : AppColors.primary,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                (next.needsResolution
-                        ? 'trip_needs_review'.tr
-                        : 'needs_action'.tr)
-                    .toUpperCase(),
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: next.needsResolution
-                      ? AppColors.assigned
-                      : AppColors.primary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 9.5,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Spacer(),
         if (next.code != null && next.code!.isNotEmpty)
-          Flexible(
+          Expanded(
             child: Text(
               next.code!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleSmall?.copyWith(
                 color: AppColors.secondary,
-                fontWeight: FontWeight.w700,
-                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
                 letterSpacing: 0,
               ),
             ),
           ),
+        if (showReviewChip) ...[
+          const SizedBox(width: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.assigned.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  IconsaxPlusLinear.timer_1,
+                  size: 12,
+                  color: AppColors.assigned,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  'trip_needs_review'.tr.toUpperCase(),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: AppColors.assigned,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 10.5,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -834,7 +825,7 @@ class _NextPickupCard extends StatelessWidget {
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.outline,
               fontWeight: FontWeight.w700,
-              fontSize: 8.5,
+              fontSize: 10.5,
               letterSpacing: 0.35,
               height: 1.0,
             ),
@@ -848,7 +839,7 @@ class _NextPickupCard extends StatelessWidget {
           style: theme.textTheme.titleSmall?.copyWith(
             color: AppColors.secondary,
             fontWeight: FontWeight.w700,
-            fontSize: 12.5,
+            fontSize: 15,
             letterSpacing: 0,
             height: 1.15,
           ),
@@ -884,9 +875,9 @@ class _NextPickupCard extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       textAlign: TextAlign.right,
       style: theme.textTheme.labelMedium?.copyWith(
-        color: AppColors.secondary.withValues(alpha: 0.86),
-        fontWeight: FontWeight.w500,
-        fontSize: 11,
+        color: AppColors.secondary,
+        fontWeight: FontWeight.w700,
+        fontSize: 12.5,
         height: 1.1,
         letterSpacing: 0,
       ),
@@ -924,7 +915,7 @@ class _NextPickupCard extends StatelessWidget {
       style: theme.textTheme.labelLarge?.copyWith(
         color: highlighted ? AppColors.primary : AppColors.secondary,
         fontWeight: highlighted ? FontWeight.w800 : FontWeight.w600,
-        fontSize: highlighted ? 16 : 11,
+        fontSize: highlighted ? 17 : 12.5,
         height: 1.1,
         letterSpacing: 0,
       ),
@@ -943,7 +934,7 @@ class _NextPickupCard extends StatelessWidget {
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.outline,
             fontWeight: FontWeight.w700,
-            fontSize: 8,
+            fontSize: 10.5,
             letterSpacing: 0.35,
             height: 1,
           ),
@@ -957,7 +948,7 @@ class _NextPickupCard extends StatelessWidget {
           style: theme.textTheme.labelLarge?.copyWith(
             color: AppColors.secondary.withValues(alpha: 0.92),
             fontWeight: FontWeight.w600,
-            fontSize: 12,
+            fontSize: 13.5,
             height: 1.15,
             letterSpacing: 0,
           ),
@@ -970,108 +961,14 @@ class _NextPickupCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.right,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.outline,
-              fontWeight: FontWeight.w400,
-              fontSize: 10,
-              height: 1.1,
+              color: AppColors.secondary.withValues(alpha: 0.7),
+              fontWeight: FontWeight.w600,
+              fontSize: 12.5,
+              height: 1.15,
             ),
           ),
         ],
       ],
-    );
-  }
-
-  Widget _routeActionButton(ThemeData theme) {
-    final label =
-        (_showsDropoffRoute ? 'view_dropoff_route' : 'view_pickup_route').tr;
-
-    return Semantics(
-      button: true,
-      label: label,
-      child: Material(
-        color: AppColors.primary.withValues(alpha: 0.075),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.20)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          key: const ValueKey('next-pickup-route-action'),
-          onTap: controller.openNextPickupMap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.22),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    IconsaxPlusLinear.routing_2,
-                    size: 18,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: AppColors.secondary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12.5,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                      const SizedBox(height: 1),
-                      Text(
-                        'route_action_hint'.tr,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 9.5,
-                          height: 1.15,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withValues(alpha: 0.72),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    IconsaxPlusLinear.arrow_right_3,
-                    size: 15,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -1131,6 +1028,7 @@ class _NextPickupCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 12,
                       color: theme.colorScheme.outline,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1157,22 +1055,12 @@ class _NextPickupCard extends StatelessWidget {
     );
   }
 
-  /// The advance control: an animated next-step button for start/arrived/meet,
-  /// and a deliberate swipe for the irreversible final drop. Lives on the card
-  /// so the driver advances the trip without leaving Home.
+  /// The card's primary control. Trip steps (start, arrived, met passenger,
+  /// drop) are taken on the map screen, so from Home the driver's one move is
+  /// to open the route — seeing where the passenger is before committing.
   Widget _action(ThemeData theme, String action) {
     if (action == 'start' && next.isStartTooOld) {
       return _staleStartAction(theme);
-    }
-
-    if (action == 'complete') {
-      return Obx(
-        () => SwipeToConfirm(
-          label: 'swipe_to_drop'.tr,
-          loading: controller.isActing.value,
-          onConfirmed: () => controller.runNextAction('complete'),
-        ),
-      );
     }
 
     if (action == 'resolve_completed') {
@@ -1190,34 +1078,25 @@ class _NextPickupCard extends StatelessWidget {
       );
     }
 
-    final (String label, IconData icon) = switch (action) {
-      'start' => (
-        next.isStartOverdue ? 'start_trip_now'.tr : 'start_now'.tr,
-        IconsaxPlusLinear.play,
-      ),
-      'arrived' => ('mark_arrived'.tr, IconsaxPlusLinear.location_tick),
-      'meet_passenger' => ('meet_passenger'.tr, IconsaxPlusLinear.profile_tick),
-      _ => ('start_now'.tr, IconsaxPlusLinear.play),
-    };
+    final started = action != 'start';
 
     return Obx(
       () => StepActionButton(
-        label: label,
-        icon: icon,
+        key: const ValueKey('next-pickup-route-action'),
+        label: _routeActionLabel(action),
+        // A preview before setting off, live guidance once the trip is running.
+        icon: started ? IconsaxPlusLinear.gps : IconsaxPlusLinear.routing_2,
         loading: controller.isActing.value,
-        // Confirm first: advancing a step cannot be undone from the app, and
-        // this button sits right under the trip card where a mis-tap is easy.
-        onPressed: () async {
-          if (await confirmStepAction(action)) {
-            await controller.runNextAction(action);
-          }
-        },
+        onPressed: controller.openNextPickupMap,
       ),
     );
   }
 
-  bool get _canReportPickupIssue =>
-      next.allowedActions.contains('report_pickup_issue');
+  /// What the map button promises: a look at the route before setting off,
+  /// then a way back to the live trip - map, progress and the next step - once
+  /// it is running.
+  String _routeActionLabel(String action) =>
+      action == 'start' ? 'view_pickup_route'.tr : 'track_your_trip'.tr;
 
   Widget _startOverdueNotice(ThemeData theme) {
     final isTooOld = next.isStartTooOld;
@@ -1257,6 +1136,7 @@ class _NextPickupCard extends StatelessWidget {
             child: Text(
               key.tr,
               style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 12.5,
                 color: AppColors.secondary,
                 fontWeight: FontWeight.w600,
                 height: 1.25,
@@ -1302,7 +1182,7 @@ class _NextPickupCard extends StatelessWidget {
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: AppColors.cancelled,
                         fontWeight: FontWeight.w700,
-                        fontSize: 10,
+                        fontSize: 13,
                         letterSpacing: 0,
                         height: 1.15,
                       ),
@@ -1315,7 +1195,7 @@ class _NextPickupCard extends StatelessWidget {
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.secondary.withValues(alpha: 0.72),
                         fontWeight: FontWeight.w500,
-                        fontSize: 8.8,
+                        fontSize: 11.5,
                         height: 1.15,
                       ),
                     ),
@@ -1343,7 +1223,7 @@ class _NextPickupCard extends StatelessWidget {
                     ),
                     textStyle: theme.textTheme.labelLarge?.copyWith(
                       fontWeight: FontWeight.w700,
-                      fontSize: 9.5,
+                      fontSize: 12,
                     ),
                   ),
                 ),
@@ -1370,40 +1250,8 @@ class _NextPickupCard extends StatelessWidget {
       ),
     );
   }
-
-  Widget _pickupIssueButton(BuildContext context, ThemeData theme) {
-    return Obx(
-      () => TextButton.icon(
-        onPressed: controller.isActing.value
-            ? null
-            : () => showPickupIssueSheet(
-                context: context,
-                onSubmit: (reason, note) =>
-                    controller.reportPickupIssue(reason, note: note),
-                reasonOptions: next.pickupIssueReasonOptions,
-                noteMaxLength: next.pickupIssueNoteMaxLength,
-              ),
-        icon: const Icon(IconsaxPlusLinear.search_status, size: 17),
-        label: Text('pickup_issue_link'.tr),
-        style: TextButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          minimumSize: const Size(0, 30),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: 4,
-          ),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          textStyle: theme.textTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
 }
 
-/// Compact, modern empty template — a brand-haloed icon + title + hint. Used by
-/// both the NOW and UPCOMING sections so each has its own purposeful empty state.
 class _EmptyCard extends StatelessWidget {
   const _EmptyCard({
     required this.icon,
@@ -1437,7 +1285,7 @@ class _EmptyCard extends StatelessWidget {
             title,
             textAlign: TextAlign.center,
             style: theme.textTheme.titleSmall?.copyWith(
-              fontSize: 15.5,
+              fontSize: 16.5,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.1,
               height: 1.2,
@@ -1450,6 +1298,7 @@ class _EmptyCard extends StatelessWidget {
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 13,
               color: theme.colorScheme.outline,
               height: 1.35,
             ),
@@ -1493,16 +1342,25 @@ class _StatCard extends StatelessWidget {
               style: theme.textTheme.headlineSmall?.copyWith(
                 color: color,
                 fontWeight: FontWeight.w800,
+                fontSize: 26,
+                height: 1.1,
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               label,
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              // labelSmall ships 0.5 of tracking, which at this size spreads
+              // the word out and thins it. Close it up instead.
               style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.outline,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0,
+                height: 1.15,
+                color: AppColors.secondary.withValues(alpha: 0.72),
               ),
             ),
           ],

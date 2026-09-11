@@ -17,6 +17,7 @@ import '../../core/utils/app_snackbar.dart';
 import '../../core/utils/external_launcher.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/collect_payment_sheet.dart';
+import '../../core/widgets/pickup_issue_button.dart';
 import '../../core/widgets/confirm_dialog.dart';
 import '../../core/widgets/step_action_button.dart';
 import '../../core/widgets/swipe_to_confirm.dart';
@@ -45,6 +46,13 @@ const _routeRefreshDistanceMeters = 80.0; // fallback when no road line yet
 const _routeOffRouteMeters = 60.0;
 const _routeMaxAge = Duration(minutes: 3);
 const _markerUpdateDistanceMeters = 2.0;
+
+/// Zoom used when there is a single point to show.
+const _soloZoom = 15.5;
+
+/// Closest the automatic fit is allowed to go, so short routes still show
+/// their surroundings instead of a rooftop.
+const _maxFitZoom = 16.5;
 const _locationSyncInterval = Duration(seconds: 20);
 const _locationSyncDistanceMeters = 20.0;
 const _pickupApproachingDistanceMeters = 1000.0;
@@ -78,6 +86,25 @@ class _TripMapViewState extends State<TripMapView> {
   bool _isActing = false;
   BookingDetail? _booking;
 
+  /// True once the camera has framed the real road route. Early fits (a lone
+  /// pickup pin, a straight line before Routes answers) do not count, or the
+  /// route would never get framed at all.
+  bool _hasFittedRoute = false;
+
+  /// Set as soon as the driver pans or zooms: from then on only an explicit
+  /// recenter moves the camera.
+  bool _userMovedCamera = false;
+
+  /// True while our own animation is running, so it is not mistaken for a
+  /// driver gesture.
+  bool _programmaticCameraMove = false;
+
+  /// Height of the bottom sheet, kept out of the camera's usable area so the
+  /// route is never fitted behind it.
+  double _sheetHeight = 0;
+
+  final GlobalKey _sheetKey = GlobalKey();
+
   RouteMapArgs get args => Get.arguments as RouteMapArgs;
 
   @override
@@ -101,6 +128,7 @@ class _TripMapViewState extends State<TripMapView> {
   @override
   Widget build(BuildContext context) {
     final hasMap = args.pickup.hasCoordinates && args.dropoff.hasCoordinates;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureSheet());
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -121,6 +149,7 @@ class _TripMapViewState extends State<TripMapView> {
             Align(
               alignment: Alignment.bottomCenter,
               child: _RouteSheet(
+                key: _sheetKey,
                 args: args,
                 distanceLabel: _distanceLabel(),
                 durationLabel: _durationLabel(),
@@ -133,7 +162,7 @@ class _TripMapViewState extends State<TripMapView> {
                 collapsed: _isSheetCollapsed,
                 action: _mapAction,
                 acting: _isActing,
-                stage: _booking?.stage,
+                stage: _isFutureTrip ? null : _booking?.stage,
                 driverTripStatus: _booking?.driverTripStatus,
                 pickupDistanceMeters: _pickupDistanceMeters,
                 arrivalRadiusMeters: _arrivalRadiusMeters,
@@ -141,12 +170,32 @@ class _TripMapViewState extends State<TripMapView> {
                     setState(() => _isSheetCollapsed = !_isSheetCollapsed),
                 onNavigate: _navigate,
                 onAction: _runMapAction,
+                canReportPickupIssue:
+                    _booking?.canReportPickupIssue == true && !_isActing,
+                pickupIssueReasonOptions:
+                    _booking?.pickupIssueReasonOptions ?? const [],
+                pickupIssueNoteMaxLength:
+                    _booking?.pickupIssueNoteMaxLength ?? 500,
+                onReportPickupIssue: _reportPickupIssue,
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// The sheet's height drives the map's bottom padding. It changes when the
+  /// sheet collapses or the step action appears, so it is re-read each frame
+  /// and only pushed into state when it actually moves.
+  void _measureSheet() {
+    if (!mounted) return;
+    final box = _sheetKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+
+    final height = box.size.height;
+    if ((height - _sheetHeight).abs() < 1) return;
+    setState(() => _sheetHeight = height);
   }
 
   Future<void> _loadBooking() async {
@@ -167,9 +216,16 @@ class _TripMapViewState extends State<TripMapView> {
     }
   }
 
+  /// Departure is still too far off: this screen is a route preview only.
+  bool get _isFutureTrip => _booking?.isUpcomingOnly == true;
+
   String? get _mapAction {
     final booking = _booking;
     if (booking == null) return null;
+
+    // Starting early is the server's call, not a button the driver can reach
+    // from here.
+    if (_isFutureTrip) return null;
 
     for (final action in const [
       'start',
@@ -307,6 +363,30 @@ class _TripMapViewState extends State<TripMapView> {
 
   /// Posts one trip step. Returns the failure instead of reporting it, so the
   /// caller can recover (e.g. collect the cash and retry).
+  /// Report the pickup issue and leave: this leg is over, and the driver's
+  /// next move is back on the list, not on a map to nobody.
+  Future<void> _reportPickupIssue(String reason, String? note) async {
+    if (_isActing) return;
+    setState(() => _isActing = true);
+    try {
+      await Get.find<BookingRepository>().reportPickupIssue(
+        args.uuid,
+        assignmentId: args.assignmentId,
+        reason: reason,
+        note: note,
+      );
+      if (!mounted) return;
+      AppSnackbar.success('pickup_issue_reported'.tr);
+      Get.back<void>();
+    } on ApiException catch (error) {
+      AppSnackbar.error(error.message);
+    } catch (_) {
+      AppSnackbar.error('error_generic'.tr);
+    } finally {
+      if (mounted) setState(() => _isActing = false);
+    }
+  }
+
   Future<ApiException?> _performMapAction(String action) async {
     setState(() => _isActing = true);
     try {
@@ -431,11 +511,19 @@ class _TripMapViewState extends State<TripMapView> {
 
   Widget _googleMap() {
     return GoogleMap(
-      initialCameraPosition: CameraPosition(target: _initialTarget(), zoom: 12),
+      initialCameraPosition: CameraPosition(
+        target: _initialTarget(),
+        zoom: _hasUsableDriverLocation ? 15.5 : 12,
+      ),
+      // Keep the camera's usable area above the sheet and below the header,
+      // so a fitted route lands where the driver can actually see it.
+      padding: EdgeInsets.only(top: 76, bottom: _sheetHeight),
       markers: _markers(),
       polylines: _polylines(),
       myLocationButtonEnabled: false,
-      myLocationEnabled: _hasUsableDriverLocation,
+      // The driver is drawn once, as the car marker. The native blue dot on
+      // top of it read as two vehicles.
+      myLocationEnabled: false,
       zoomControlsEnabled: false,
       compassEnabled: false,
       mapToolbarEnabled: false,
@@ -444,6 +532,11 @@ class _TripMapViewState extends State<TripMapView> {
         _mapController = controller;
         unawaited(_fitCamera());
       },
+      onCameraMoveStarted: () {
+        // A move we did not start is the driver taking over the map.
+        if (!_programmaticCameraMove) _userMovedCamera = true;
+      },
+      onCameraIdle: () => _programmaticCameraMove = false,
     );
   }
 
@@ -655,7 +748,7 @@ class _TripMapViewState extends State<TripMapView> {
       _setDriverLocation(location, force: true);
       unawaited(_syncLocationForObservers(location));
       unawaited(_loadRoadRoute(force: true));
-      await _fitCamera();
+      await _fitCamera(force: true);
     } catch (_) {
       // Full-screen map remains usable with pickup/drop-off coordinates.
       unawaited(_loadRoadRoute());
@@ -699,7 +792,7 @@ class _TripMapViewState extends State<TripMapView> {
     final isNowUsingDriverLocation = _hasUsableDriverLocation;
     if (!wasUsingDriverLocation && isNowUsingDriverLocation) {
       unawaited(_loadRoadRoute(force: true));
-      unawaited(_fitCamera());
+      unawaited(_fitCamera(force: true));
       return;
     }
 
@@ -783,15 +876,10 @@ class _TripMapViewState extends State<TripMapView> {
       _setDriverLocation(location);
       unawaited(_syncLocationForObservers(location));
 
-      if (_routeMode == 'passenger') {
-        await _fitCamera();
-        return;
-      }
+      if (_routeMode == 'passenger') return;
 
       if (_needsRouteRefresh(location)) {
         await _loadRoadRoute();
-      } else {
-        await _fitCamera();
       }
     } catch (_) {
       // Auto-refresh should be silent; the manual GPS button reports errors.
@@ -823,13 +911,18 @@ class _TripMapViewState extends State<TripMapView> {
       return;
     }
 
-    if (!force && mode == 'passenger' && _lastRouteMode == mode) {
-      await _fitCamera();
+    // A new destination always needs a new line, however little the driver
+    // has moved since the last one.
+    final modeChanged = _lastRouteMode != null && _lastRouteMode != mode;
+
+    if (!force && !modeChanged && mode == 'passenger' && _lastRouteMode == mode) {
       return;
     }
 
-    if (!force && mode != 'passenger' && !_shouldRefreshRouteFromMovement()) {
-      await _fitCamera();
+    if (!force &&
+        !modeChanged &&
+        mode != 'passenger' &&
+        !_shouldRefreshRouteFromMovement()) {
       return;
     }
 
@@ -847,13 +940,16 @@ class _TripMapViewState extends State<TripMapView> {
             : null,
       );
       if (!mounted) return;
+      // The first real line gets framed by the unforced path below; after
+      // that only a change of destination earns the camera back.
+      final modeChanged = _lastRouteMode != null && _lastRouteMode != mode;
       setState(() {
         _roadRoute = route;
         _lastRouteLocation = _hasUsableDriverLocation ? _driverLocation : null;
         _lastRouteMode = mode;
         _lastRouteAt = DateTime.now();
       });
-      await _fitCamera();
+      await _fitCamera(force: modeChanged && !_userMovedCamera);
     } catch (_) {
       // Keep marker + fallback line usable if Routes API is unavailable.
     } finally {
@@ -933,25 +1029,61 @@ class _TripMapViewState extends State<TripMapView> {
     return math.sqrt(dx * dx + dy * dy);
   }
 
-  Future<void> _fitCamera() async {
+  /// Frame the route. Runs once on open and then only when [force] is set —
+  /// a recenter tap, or a genuine change of destination. Everything else
+  /// (location ticks, route refreshes) leaves the camera where the driver
+  /// put it.
+  Future<void> _fitCamera({bool force = false}) async {
     final controller = _mapController;
     if (controller == null) return;
 
-    final points = _cameraPoints();
+    if (!force && (_hasFittedRoute || _userMovedCamera)) return;
 
+    var points = _cameraPoints();
     if (points.isEmpty) return;
+
+    // Points that all land on the same spot make a zero-area box, which
+    // newLatLngBounds rejects - treat that as the single-point case.
+    if (points.length > 1 && _boundsAreDegenerate(points)) {
+      points = [points.first];
+    }
+
+    // Only a fit of the real road line closes the door on further auto-fits.
+    if ((_roadRoute?.points.length ?? 0) > 1) _hasFittedRoute = true;
+    if (force) _userMovedCamera = false;
+    _programmaticCameraMove = true;
+
     if (points.length == 1) {
       await controller.animateCamera(
         CameraUpdate.newCameraPosition(
-          CameraPosition(target: points.first, zoom: 14),
+          CameraPosition(target: points.first, zoom: _soloZoom),
         ),
       );
       return;
     }
 
     await controller.animateCamera(
-      CameraUpdate.newLatLngBounds(_boundsFor(points), 84),
+      CameraUpdate.newLatLngBounds(_boundsFor(points), 56),
     );
+
+    // A short hop fits to a zoom so tight the driver sees rooftops; pull back
+    // to a level where the car, the road names and the route all read. Give
+    // the fit a moment to settle first or the zoom read is the pre-fit one.
+    await Future<void>.delayed(const Duration(milliseconds: 320));
+    if (!mounted) return;
+    final zoom = await controller.getZoomLevel();
+    if (zoom > _maxFitZoom) {
+      _programmaticCameraMove = true;
+      await controller.animateCamera(CameraUpdate.zoomTo(_maxFitZoom));
+    }
+  }
+
+  /// True when every point is effectively the same coordinate.
+  bool _boundsAreDegenerate(List<LatLng> points) {
+    final bounds = _boundsFor(points);
+    return (bounds.northeast.latitude - bounds.southwest.latitude).abs() <
+            1e-6 &&
+        (bounds.northeast.longitude - bounds.southwest.longitude).abs() < 1e-6;
   }
 
   LatLngBounds _boundsFor(List<LatLng> points) {
@@ -1209,6 +1341,7 @@ class _TripMapViewState extends State<TripMapView> {
 
 class _RouteSheet extends StatelessWidget {
   const _RouteSheet({
+    super.key,
     required this.args,
     required this.onNavigate,
     required this.usesDriverLocation,
@@ -1221,6 +1354,10 @@ class _RouteSheet extends StatelessWidget {
     required this.acting,
     required this.onToggleCollapsed,
     required this.onAction,
+    required this.onReportPickupIssue,
+    this.canReportPickupIssue = false,
+    this.pickupIssueReasonOptions = const [],
+    this.pickupIssueNoteMaxLength = 500,
     this.distanceLabel,
     this.durationLabel,
     this.action,
@@ -1251,6 +1388,13 @@ class _RouteSheet extends StatelessWidget {
   final VoidCallback onToggleCollapsed;
   final VoidCallback onNavigate;
   final Future<void> Function() onAction;
+
+  /// The passenger is not here: reported from the map, where the driver is
+  /// standing when they find out.
+  final bool canReportPickupIssue;
+  final List<String> pickupIssueReasonOptions;
+  final int pickupIssueNoteMaxLength;
+  final Future<void> Function(String reason, String? note) onReportPickupIssue;
 
   @override
   Widget build(BuildContext context) {
@@ -1353,6 +1497,15 @@ class _RouteSheet extends StatelessWidget {
             ],
             const SizedBox(height: 10),
             _MapStepAction(action: action!, acting: acting, onAction: onAction),
+            if (canReportPickupIssue)
+              Center(
+                child: PickupIssueButton(
+                  enabled: !acting,
+                  onSubmit: onReportPickupIssue,
+                  reasonOptions: pickupIssueReasonOptions,
+                  noteMaxLength: pickupIssueNoteMaxLength,
+                ),
+              ),
           ],
         ],
       ),
@@ -1650,25 +1803,35 @@ class _ExpandedRouteSheetBody extends StatelessWidget {
         ),
         const SizedBox(height: 5),
         Center(
-          child: TextButton.icon(
+          child: TextButton(
             onPressed: onNavigate,
-            icon: const Icon(IconsaxPlusLinear.routing, size: 16),
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('open_google_maps'.tr),
-                const SizedBox(width: 4),
-                const Icon(IconsaxPlusLinear.arrow_right_3, size: 13),
-              ],
-            ),
             style: TextButton.styleFrom(
               foregroundColor: AppColors.primary,
-              minimumSize: const Size(0, 26),
+              minimumSize: const Size(0, 30),
               padding: const EdgeInsets.symmetric(horizontal: 8),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              textStyle: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+            ),
+            // An optional aside, not the main way out of this screen - it
+            // reads as a hint rather than a second primary action.
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    'open_google_maps_hint'.tr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.5,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(IconsaxPlusLinear.arrow_right_3, size: 14),
+              ],
             ),
           ),
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
 /// Icon + label + value row used throughout the booking detail screen.
@@ -34,11 +35,21 @@ class InfoRow extends StatelessWidget {
                 Text(
                   label,
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.outline,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0,
+                    color: AppColors.secondary.withValues(alpha: 0.7),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(value, style: theme.textTheme.bodyLarge),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                ),
               ],
             ),
           ),

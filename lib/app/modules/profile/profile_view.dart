@@ -27,117 +27,131 @@ class ProfileView extends GetView<ProfileController> {
       backgroundColor: canvas,
       body: Container(
         decoration: BoxDecoration(color: canvas),
-        child: Form(
-          key: controller.formKey,
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: AppSpacing.navClearance),
-            children: [
-              _CoverHeader(controller: controller),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.pageH,
-                  0,
-                  AppSpacing.pageH,
-                  0,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Collapsible identity / edit block (card-less, centered).
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
+        // Without this the scroll viewport starts at y=0 and the cards ride
+        // up under the status bar as the page scrolls.
+        child: SafeArea(
+          bottom: false,
+          child: Form(
+            key: controller.formKey,
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: AppSpacing.navClearance),
+              children: [
+                _CoverHeader(controller: controller),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.pageH,
+                    0,
+                    AppSpacing.pageH,
+                    0,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Collapsible identity / edit block (card-less, centered).
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Obx(() {
+                            final editing = controller.isEditing.value;
+                            return AnimatedSize(
+                              duration: const Duration(milliseconds: 280),
+                              curve: Curves.easeOutCubic,
+                              alignment: Alignment.topCenter,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 260),
+                                switchInCurve: Curves.easeOut,
+                                switchOutCurve: Curves.easeIn,
+                                transitionBuilder: (child, animation) =>
+                                    FadeTransition(
+                                      opacity: animation,
+                                      child: SlideTransition(
+                                        position: Tween<Offset>(
+                                          begin: const Offset(0, 0.04),
+                                          end: Offset.zero,
+                                        ).animate(animation),
+                                        child: child,
+                                      ),
+                                    ),
+                                child: editing
+                                    ? _EditForm(
+                                        key: const ValueKey('edit'),
+                                        controller: controller,
+                                      )
+                                    : _Identity(
+                                        key: const ValueKey('identity'),
+                                        controller: controller,
+                                      ),
+                              ),
+                            );
+                          }),
+                        ),
                       ),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: Obx(() {
-                          final editing = controller.isEditing.value;
-                          return AnimatedSize(
-                            duration: const Duration(milliseconds: 280),
-                            curve: Curves.easeOutCubic,
-                            alignment: Alignment.topCenter,
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 260),
-                              switchInCurve: Curves.easeOut,
-                              switchOutCurve: Curves.easeIn,
-                              transitionBuilder: (child, animation) =>
-                                  FadeTransition(
-                                    opacity: animation,
-                                    child: SlideTransition(
-                                      position: Tween<Offset>(
-                                        begin: const Offset(0, 0.04),
-                                        end: Offset.zero,
-                                      ).animate(animation),
-                                      child: child,
-                                    ),
-                                  ),
-                              child: editing
-                                  ? _EditForm(
-                                      key: const ValueKey('edit'),
-                                      controller: controller,
-                                    )
-                                  : _Identity(
-                                      key: const ValueKey('identity'),
-                                      controller: controller,
-                                    ),
+                      const SizedBox(height: AppSpacing.xl),
+
+                      SectionLabel('documents'.tr),
+                      const SizedBox(height: AppSpacing.md),
+                      _NavRow(
+                        icon: IconsaxPlusLinear.personalcard,
+                        title: 'my_documents'.tr,
+                        subtitle: 'documents_subtitle'.tr,
+                        onTap: controller.openDocuments,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+
+                      SectionLabel('support'.tr),
+                      const SizedBox(height: AppSpacing.md),
+                      _NavRow(
+                        icon: IconsaxPlusLinear.book_1,
+                        title: 'help_and_guide'.tr,
+                        onTap: controller.openGuide,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      _CompactPrefs(controller: controller),
+                      const SizedBox(height: AppSpacing.xl),
+
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          if (await confirmSignOut()) {
+                            await controller.logout();
+                          }
+                        },
+                        icon: const Icon(IconsaxPlusLinear.logout, size: 18),
+                        label: Text('sign_out'.tr),
+                        style: OutlinedButton.styleFrom(
+                          textStyle: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          foregroundColor: theme.colorScheme.error,
+                          side: BorderSide(
+                            color: theme.colorScheme.error.withValues(
+                              alpha: 0.4,
                             ),
-                          );
-                        }),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-
-                    SectionLabel('documents'.tr),
-                    const SizedBox(height: AppSpacing.md),
-                    _NavRow(
-                      icon: IconsaxPlusLinear.personalcard,
-                      title: 'my_documents'.tr,
-                      subtitle: 'documents_subtitle'.tr,
-                      onTap: controller.openDocuments,
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-
-                    SectionLabel('support'.tr),
-                    const SizedBox(height: AppSpacing.md),
-                    _NavRow(
-                      icon: IconsaxPlusLinear.book_1,
-                      title: 'help_and_guide'.tr,
-                      onTap: controller.openGuide,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    _CompactPrefs(controller: controller),
-                    const SizedBox(height: AppSpacing.xl),
-
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        if (await confirmSignOut()) {
-                          await controller.logout();
-                        }
-                      },
-                      icon: const Icon(IconsaxPlusLinear.logout, size: 18),
-                      label: Text('sign_out'.tr),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: theme.colorScheme.error,
-                        side: BorderSide(
-                          color: theme.colorScheme.error.withValues(alpha: 0.4),
-                        ),
-                        minimumSize: const Size.fromHeight(50),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Center(
-                      child: Text(
-                        'version_label'.trParams({'version': AppConfig.appVersion}),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.outline,
+                          ),
+                          minimumSize: const Size.fromHeight(50),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.md),
+                      Center(
+                        child: Text(
+                          'version_label'.trParams({
+                            'version': AppConfig.appVersion,
+                          }),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 12.5,
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -246,8 +260,8 @@ class _Identity extends StatelessWidget {
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               textStyle: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
@@ -273,8 +287,9 @@ class _Identity extends StatelessWidget {
         Text(
           value,
           style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w500,
-            color: theme.colorScheme.onSurfaceVariant,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.secondary.withValues(alpha: 0.72),
           ),
         ),
       ],
@@ -357,6 +372,7 @@ class _EditForm extends StatelessWidget {
                 child: Text(
                   'login_contacts_locked'.tr,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: 13,
                     color: Theme.of(context).colorScheme.outline,
                     height: 1.35,
                   ),
@@ -416,7 +432,7 @@ class _EditForm extends StatelessWidget {
     foregroundColor: Colors.white,
     minimumSize: const Size(0, 46),
     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+    textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
     ),
@@ -427,7 +443,7 @@ class _EditForm extends StatelessWidget {
     foregroundColor: AppColors.primary,
     minimumSize: const Size(0, 46),
     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+    textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
     ),
@@ -562,6 +578,7 @@ class _EditForm extends StatelessWidget {
                     child: Text(
                       text,
                       style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 15,
                         color: hasValue
                             ? theme.colorScheme.onSurface
                             : theme.colorScheme.onSurfaceVariant,
@@ -690,6 +707,7 @@ class _EditForm extends StatelessWidget {
           child: Text(
             label,
             style: theme.textTheme.labelMedium?.copyWith(
+              fontSize: 13,
               color: theme.colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
@@ -889,6 +907,7 @@ class _PhotoConfirmationSheet extends StatelessWidget {
             Text(
               'update_profile_photo'.tr,
               style: theme.textTheme.titleLarge?.copyWith(
+                fontSize: 20,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.3,
               ),
@@ -898,6 +917,7 @@ class _PhotoConfirmationSheet extends StatelessWidget {
               'review_photo_hint'.tr,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 14.5,
                 color: theme.colorScheme.onSurfaceVariant,
                 height: 1.4,
               ),
@@ -950,6 +970,7 @@ class _PhotoConfirmationSheet extends StatelessWidget {
                   Text(
                     'photo_ready_status'.tr,
                     style: theme.textTheme.labelMedium?.copyWith(
+                      fontSize: 13,
                       color: AppColors.primary,
                       fontWeight: FontWeight.w700,
                     ),
@@ -1024,13 +1045,21 @@ class _NavRow extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         leading: Icon(icon, color: AppColors.primary),
-        title: Text(title, style: theme.textTheme.titleSmall),
+        title: Text(
+          title,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.1,
+          ),
+        ),
         subtitle: subtitle == null
             ? null
             : Text(
                 subtitle!,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.outline,
+                  fontSize: 13.5,
+                  color: AppColors.secondary.withValues(alpha: 0.66),
                 ),
               ),
         trailing: Icon(
@@ -1055,7 +1084,7 @@ class _CompactPrefs extends StatelessWidget {
     final small = SegmentedButton.styleFrom(
       visualDensity: VisualDensity.compact,
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      textStyle: const TextStyle(fontSize: 12),
+      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
     );
 
     Widget row(IconData icon, String label, Widget control) => Row(
@@ -1065,7 +1094,9 @@ class _CompactPrefs extends StatelessWidget {
         Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.outline,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.secondary.withValues(alpha: 0.74),
           ),
         ),
         const Spacer(),

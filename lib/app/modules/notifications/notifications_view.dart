@@ -22,29 +22,35 @@ class NotificationsView extends GetView<NotificationsController> {
 
     return Scaffold(
       backgroundColor: canvas,
-      body: RefreshIndicator(
-        onRefresh: controller.refreshList,
-        child: NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            if (notification.metrics.extentAfter < 220) {
-              controller.loadMore();
-            }
-            return false;
-          },
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.pageH,
-              AppSpacing.lg,
-              AppSpacing.pageH,
-              AppSpacing.navClearance,
+      // The scroll viewport has to start below the status bar, or list items
+      // ride up underneath it. Compensating inside the list does not work:
+      // the header scrolls away and everything after it is unprotected.
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: controller.refreshList,
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification.metrics.extentAfter < 220) {
+                controller.loadMore();
+              }
+              return false;
+            },
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.pageH,
+                AppSpacing.sm,
+                AppSpacing.pageH,
+                AppSpacing.navClearance,
+              ),
+              children: const [
+                _Header(),
+                SizedBox(height: AppSpacing.lg),
+                _FilterTabs(),
+                SizedBox(height: AppSpacing.xl),
+                _NotificationsBody(),
+              ],
             ),
-            children: const [
-              _Header(),
-              SizedBox(height: AppSpacing.lg),
-              _FilterTabs(),
-              SizedBox(height: AppSpacing.xl),
-              _NotificationsBody(),
-            ],
           ),
         ),
       ),
@@ -59,38 +65,35 @@ class _Header extends GetView<NotificationsController> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const AppBackButton(),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  'notifications_title'.tr,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: AppColors.secondary,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0,
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const AppBackButton(),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                'notifications_title'.tr,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: AppColors.secondary,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0,
                 ),
               ),
-              Obx(
-                () => _MarkAllReadButton(
-                  enabled:
-                      controller.unreadCount > 0 &&
-                      !controller.isMarkingAll.value,
-                  loading: controller.isMarkingAll.value,
-                  onTap: controller.markAllAsRead,
-                ),
+            ),
+            Obx(
+              () => _MarkAllReadButton(
+                enabled:
+                    controller.unreadCount > 0 &&
+                    !controller.isMarkingAll.value,
+                loading: controller.isMarkingAll.value,
+                onTap: controller.markAllAsRead,
               ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -114,37 +117,29 @@ class _MarkAllReadButton extends StatelessWidget {
 
     return InkWell(
       onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(999),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+      child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.sm,
           vertical: 7,
         ),
-        decoration: BoxDecoration(
-          color: enabled
-              ? AppColors.primary.withValues(alpha: 0.10)
-              : Colors.white.withValues(alpha: 0.42),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: color.withValues(alpha: 0.16)),
-        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (loading)
+            if (loading) ...[
               SizedBox(
                 width: 14,
                 height: 14,
                 child: CircularProgressIndicator(strokeWidth: 2, color: color),
-              )
-            else
-              Icon(IconsaxPlusLinear.tick_circle, size: 15, color: color),
-            const SizedBox(width: AppSpacing.xs),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+            ],
             Text(
               'mark_all_read'.tr,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: color,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
                 letterSpacing: 0,
               ),
             ),

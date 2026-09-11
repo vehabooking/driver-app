@@ -243,6 +243,17 @@ class BookingDetail {
   /// trip is the driver's - it simply cannot begin before its window opens.
   bool get isStartWindowClosed => startAvailableAt != null;
 
+  /// An upcoming trip the driver cannot act on yet: the start window is shut
+  /// AND the trip has not begun.
+  ///
+  /// The stage check is the safeguard. If the API ever keeps sending
+  /// `start_available_at` after a trip starts, stage alone still proves the
+  /// trip is running, so a live booking never loses its step controls.
+  bool get isUpcomingOnly =>
+      (startLocked || isStartWindowClosed) &&
+      stage == 'assigned' &&
+      !isClosed;
+
   /// Whether this assignment belongs to a two-leg trip contract.
   bool get hasReturn => isRoundTrip;
 

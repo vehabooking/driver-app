@@ -16,7 +16,7 @@ class AppSpacing {
   static const double pageH = 12;
 
   /// Bottom padding for scroll views so content clears the floating glass nav.
-  static const double navClearance = 104;
+  static const double navClearance = 108;
 
   // Corner radii.
   static const double radiusSm = 8;

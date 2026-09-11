@@ -10,11 +10,11 @@ import '../../core/widgets/arrival_rule_note.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/confirm_dialog.dart';
 import '../../core/widgets/info_row.dart';
+import '../../core/widgets/pickup_issue_button.dart';
 import '../../core/widgets/pickup_issue_sheet.dart';
 import '../../core/widgets/state_views.dart';
 import '../../core/widgets/stale_trip_notice.dart';
 import '../../core/widgets/step_action_button.dart';
-import '../../core/widgets/swipe_to_confirm.dart';
 import '../../core/widgets/trip_step_tracker.dart';
 import '../../data/models/booking_detail.dart';
 import '../../data/models/place.dart';
@@ -57,7 +57,7 @@ class BookingDetailView extends GetView<BookingDetailController> {
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 0,
                 height: 1.2,
@@ -80,9 +80,18 @@ class BookingDetailView extends GetView<BookingDetailController> {
       }),
       bottomNavigationBar: Obx(() {
         final b = controller.booking.value;
-        // Do not show a disabled footer for future/blocked trips. The server is
-        // authoritative: the footer appears when it supplies an action.
-        if (b == null || !b.can) {
+        if (b == null) return const SizedBox.shrink();
+
+        // The server is authoritative about actions. A trip whose start window
+        // has not opened supplies none - but the driver still wants to see
+        // where they are going before the day arrives, so the footer stays for
+        // the route preview alone.
+        final canPreviewRoute =
+            b.isUpcomingOnly &&
+            b.pickup.hasCoordinates &&
+            b.dropoff.hasCoordinates;
+
+        if (!b.can && !canPreviewRoute) {
           return const SizedBox.shrink();
         }
         return _StickyFooter(b: b, controller: controller);
@@ -97,6 +106,9 @@ class _StickyFooter extends StatelessWidget {
 
   final BookingDetail b;
   final BookingDetailController controller;
+
+  /// Departure is still too far off for the server to offer any action.
+  bool get _isFutureTrip => b.isUpcomingOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -130,17 +142,23 @@ class _StickyFooter extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TripStepTracker(
-              stage: b.stage,
-              driverTripStatus: b.driverTripStatus,
-              compact: true,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            if (b.showsArrivalRule) ...[
-              const ArrivalRuleNote(),
+            // A future trip gets the route preview and nothing else. The step
+            // tracker and the arrival rule both describe a journey the driver
+            // cannot begin yet, so showing them only invites a tap that does
+            // nothing.
+            if (!_isFutureTrip) ...[
+              TripStepTracker(
+                stage: b.stage,
+                driverTripStatus: b.driverTripStatus,
+                compact: true,
+              ),
               const SizedBox(height: AppSpacing.md),
+              if (b.showsArrivalRule) ...[
+                const ArrivalRuleNote(),
+                const SizedBox(height: AppSpacing.md),
+              ],
             ],
-            if (b.isStartOverdue) ...[
+            if (b.isStartOverdue && !_isFutureTrip) ...[
               _StartOverdueNotice(b: b),
               const SizedBox(height: AppSpacing.sm),
             ],
@@ -152,27 +170,17 @@ class _StickyFooter extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
             ],
             _ActionBar(b: b, controller: controller),
+            // Kept here as well as on the map: a booking without coordinates
+            // can never open the map, and those are the ones most likely to
+            // have a bad address.
             if (b.canReportPickupIssue) ...[
               const SizedBox(height: 2),
               Obx(
-                () => TextButton(
-                  onPressed: controller.isActing.value
-                      ? null
-                      : () => showPickupIssueSheet(
-                          context: context,
-                          onSubmit: controller.reportPickupIssue,
-                          reasonOptions: b.pickupIssueReasonOptions,
-                          noteMaxLength: b.pickupIssueNoteMaxLength,
-                        ),
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(0, 30),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: 4,
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text('pickup_issue_link'.tr),
+                () => PickupIssueButton(
+                  enabled: !controller.isActing.value,
+                  onSubmit: controller.reportPickupIssue,
+                  reasonOptions: b.pickupIssueReasonOptions,
+                  noteMaxLength: b.pickupIssueNoteMaxLength,
                 ),
               ),
             ],
@@ -226,30 +234,6 @@ class _Detail extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm + 2),
           ],
 
-          _destinationStrip(theme),
-          const SizedBox(height: AppSpacing.sm + 2),
-          _bookingInfoCard(theme),
-          const SizedBox(height: AppSpacing.sm + 2),
-
-          if (_hasAssignedVehicle) ...[
-            _exactVehicleCard(theme),
-            const SizedBox(height: AppSpacing.sm + 2),
-          ],
-
-          _customerCard(theme),
-          const SizedBox(height: AppSpacing.sm + 2),
-
-          if (b.hasOperatorContact) ...[
-            _operatorCard(theme),
-            const SizedBox(height: AppSpacing.sm + 2),
-          ],
-
-          // ── Pickup issue summary (terminal) ──
-          if (b.stage == 'pickup_issue') ...[
-            _PickupIssueSummary(reason: b.pickupIssueReason),
-            const SizedBox(height: AppSpacing.sm + 2),
-          ],
-
           // The API response represents one assignment and one exact booking leg.
           // Never reconstruct another leg by reversing this leg's route.
           _tripRouteCard(
@@ -269,6 +253,22 @@ class _Detail extends StatelessWidget {
             isCurrentLeg: true,
           ),
           const SizedBox(height: AppSpacing.sm + 2),
+          _bookingInfoCard(theme),
+          const SizedBox(height: AppSpacing.sm + 2),
+
+          _customerCard(theme),
+          const SizedBox(height: AppSpacing.sm + 2),
+
+          if (b.hasOperatorContact) ...[
+            _operatorCard(theme),
+            const SizedBox(height: AppSpacing.sm + 2),
+          ],
+
+          // ── Pickup issue summary (terminal) ──
+          if (b.stage == 'pickup_issue') ...[
+            _PickupIssueSummary(reason: b.pickupIssueReason),
+            const SizedBox(height: AppSpacing.sm + 2),
+          ],
 
           // ── Extra details (only when present) ──
           if (details.isNotEmpty)
@@ -486,8 +486,8 @@ class _Detail extends StatelessWidget {
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.outline,
                     fontWeight: FontWeight.w800,
-                    fontSize: 8.5,
-                    letterSpacing: 0.35,
+                    fontSize: 12.5,
+                    letterSpacing: 0.3,
                     height: 1,
                   ),
                 ),
@@ -497,7 +497,7 @@ class _Detail extends StatelessWidget {
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.secondary,
                     fontWeight: FontWeight.w600,
-                    fontSize: 11.5,
+                    fontSize: 12.5,
                     height: 1.25,
                   ),
                 ),
@@ -560,7 +560,7 @@ class _Detail extends StatelessWidget {
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: const Color(0xFF0B6B4F),
                     fontWeight: FontWeight.w800,
-                    fontSize: 12.5,
+                    fontSize: 13.5,
                     letterSpacing: 0,
                   ),
                 ),
@@ -572,7 +572,7 @@ class _Detail extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
-                      fontSize: 10.5,
+                      fontSize: 12,
                       height: 1.2,
                     ),
                   ),
@@ -640,6 +640,10 @@ class _Detail extends StatelessWidget {
               value: b.vehicleBooked!,
             ),
           ],
+          if (_hasAssignedVehicle) ...[
+            const _DottedRowSeparator(),
+            _exactVehicleBlock(theme),
+          ],
         ],
       ),
     );
@@ -661,7 +665,7 @@ class _Detail extends StatelessWidget {
         style: theme.textTheme.labelSmall?.copyWith(
           color: color,
           fontWeight: FontWeight.w800,
-          fontSize: 10,
+          fontSize: 11,
           letterSpacing: 0,
           height: 1,
         ),
@@ -669,78 +673,48 @@ class _Detail extends StatelessWidget {
     );
   }
 
-  Widget _destinationStrip(ThemeData theme) {
+  /// The route corridor: the city-level origin -> destination pair that opens
+  /// the route card, above the exact pickup and drop-off stops.
+  Widget _routeCorridor(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.34),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.secondary.withValues(alpha: 0.045),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm + 2,
       ),
-      child: Column(
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      ),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(
-                IconsaxPlusLinear.routing_2,
-                size: 16,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                'route'.tr,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.outline,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                  letterSpacing: 0,
-                ),
-              ),
-            ],
+          Expanded(
+            child: _destinationPoint(
+              theme,
+              label: 'origin'.tr,
+              value: _routeOriginLabel,
+              alignEnd: false,
+            ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _destinationPoint(
-                  theme,
-                  label: 'origin'.tr,
-                  value: _routeOriginLabel,
-                  alignEnd: false,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(
-                  left: AppSpacing.sm,
-                  right: AppSpacing.sm,
-                  top: 18,
-                ),
-                child: Icon(
-                  IconsaxPlusLinear.arrow_right_3,
-                  size: 16,
-                  color: AppColors.secondary.withValues(alpha: 0.42),
-                ),
-              ),
-              Expanded(
-                child: _destinationPoint(
-                  theme,
-                  label: 'destination'.tr,
-                  value: _routeDestinationLabel,
-                  alignEnd: true,
-                ),
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsets.only(
+              left: AppSpacing.sm,
+              right: AppSpacing.sm,
+              top: 16,
+            ),
+            child: Icon(
+              IconsaxPlusLinear.arrow_right_3,
+              size: 16,
+              color: AppColors.primary.withValues(alpha: 0.65),
+            ),
+          ),
+          Expanded(
+            child: _destinationPoint(
+              theme,
+              label: 'destination'.tr,
+              value: _routeDestinationLabel,
+              alignEnd: true,
+            ),
           ),
         ],
       ),
@@ -773,10 +747,10 @@ class _Detail extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.outline,
+            color: AppColors.secondary.withValues(alpha: 0.62),
             fontWeight: FontWeight.w800,
-            letterSpacing: 0.35,
-            fontSize: 8.5,
+            letterSpacing: 0.3,
+            fontSize: 12.5,
           ),
         ),
         const SizedBox(height: 2),
@@ -788,7 +762,7 @@ class _Detail extends StatelessWidget {
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AppColors.secondary,
             fontWeight: FontWeight.w700,
-            fontSize: 13,
+            fontSize: 15,
             height: 1.16,
           ),
         ),
@@ -856,7 +830,8 @@ class _Detail extends StatelessWidget {
     );
   }
 
-  Widget _exactVehicleCard(ThemeData theme) {
+  /// The exact assigned vehicle, as a block inside the booking info card.
+  Widget _exactVehicleBlock(ThemeData theme) {
     final assigned = b.assignedVehicleLabel ?? '—';
     final specsParts = <String>[
       if (b.vehicleColor != null && b.vehicleColor!.isNotEmpty) b.vehicleColor!,
@@ -865,9 +840,8 @@ class _Detail extends StatelessWidget {
     ];
     final specs = specsParts.join(' · ');
 
-    return _SectionCard(
-      title: 'exact_vehicle_info'.tr,
-      titleGap: AppSpacing.sm,
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -891,14 +865,28 @@ class _Detail extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  'exact_vehicle_info'.tr.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary.withValues(alpha: 0.62),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    letterSpacing: 0.3,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
                   assigned,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: AppColors.secondary,
                     fontWeight: FontWeight.w700,
-                    fontSize: 13,
+                    fontSize: 14,
                     letterSpacing: 0,
+                    height: 1.2,
                   ),
                 ),
                 if (specs.isNotEmpty) ...[
@@ -906,9 +894,10 @@ class _Detail extends StatelessWidget {
                   Text(
                     specs,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.outline,
-                      fontSize: 11,
-                      height: 1.15,
+                      color: AppColors.secondary.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      height: 1.2,
                     ),
                   ),
                 ],
@@ -942,7 +931,7 @@ class _Detail extends StatelessWidget {
             style: theme.textTheme.labelMedium?.copyWith(
               color: AppColors.secondary,
               fontWeight: FontWeight.w700,
-              fontSize: 11,
+              fontSize: 13,
               letterSpacing: 0,
             ),
           ),
@@ -962,14 +951,18 @@ class _Detail extends StatelessWidget {
       children: [
         Icon(icon, size: 15, color: AppColors.primary),
         const SizedBox(width: AppSpacing.sm),
+        // Wide enough for the longest label ("Phone number") at this size -
+        // a fixed column keeps every value right-aligned to the same edge.
         SizedBox(
-          width: 88,
+          width: 110,
           child: Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.outline,
+              color: AppColors.secondary.withValues(alpha: 0.72),
               fontWeight: FontWeight.w600,
-              fontSize: 12,
+              fontSize: 14,
               letterSpacing: 0,
             ),
           ),
@@ -981,7 +974,7 @@ class _Detail extends StatelessWidget {
             style: theme.textTheme.bodyMedium?.copyWith(
               color: AppColors.secondary,
               fontWeight: FontWeight.w700,
-              fontSize: 12.5,
+              fontSize: 14.5,
               letterSpacing: 0,
             ),
           ),
@@ -1034,19 +1027,14 @@ class _Detail extends StatelessWidget {
     required bool isCurrentLeg,
     String? footer,
   }) {
-    final navigateToDropoff = _navigatesToDropoff;
-    final canViewRoute =
-        isCurrentLeg &&
-        !b.isClosed &&
-        pickup.hasCoordinates &&
-        dropoff.hasCoordinates;
-
     return _SectionCard(
       title: title,
       titleGap: AppSpacing.xs + 2,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _routeCorridor(theme),
+          const SizedBox(height: AppSpacing.md),
           _departureRow(
             theme,
             legLabel: legLabel,
@@ -1056,17 +1044,6 @@ class _Detail extends StatelessWidget {
           const _RouteCardSeparator(),
           _routeStop(theme, isOrigin: true, place: pickup),
           _routeStop(theme, isOrigin: false, place: dropoff),
-          if (canViewRoute) ...[
-            const SizedBox(height: AppSpacing.sm + 2),
-            _routeMapButton(
-              label: navigateToDropoff
-                  ? 'view_dropoff_route'.tr
-                  : 'view_pickup_route'.tr,
-              onTap: () {
-                controller.openMap();
-              },
-            ),
-          ],
           if (footer != null && footer.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(
@@ -1078,77 +1055,6 @@ class _Detail extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-
-  bool get _navigatesToDropoff =>
-      b.stage == 'meet_passenger' || b.stage == 'drop_passenger';
-
-  Widget _routeMapButton({required String label, required VoidCallback onTap}) {
-    return Builder(
-      builder: (context) {
-        final theme = Theme.of(context);
-        return Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            child: Container(
-              width: double.infinity,
-              height: 38,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.18),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.72),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      IconsaxPlusLinear.map,
-                      size: 13,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: AppColors.secondary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  const Icon(
-                    IconsaxPlusLinear.arrow_right_3,
-                    size: 16,
-                    color: AppColors.primary,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -1178,9 +1084,9 @@ class _Detail extends StatelessWidget {
               Text(
                 legLabel,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.outline,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+                  color: AppColors.secondary.withValues(alpha: 0.7),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                   letterSpacing: 0,
                   height: 1.1,
                 ),
@@ -1191,7 +1097,7 @@ class _Detail extends StatelessWidget {
                 style: theme.textTheme.titleSmall?.copyWith(
                   color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
-                  fontSize: 13,
+                  fontSize: 14.5,
                   letterSpacing: 0,
                   height: 1.15,
                 ),
@@ -1208,9 +1114,9 @@ class _Detail extends StatelessWidget {
               Text(
                 'est_drop'.tr,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.outline,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+                  color: AppColors.secondary.withValues(alpha: 0.7),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                   letterSpacing: 0,
                   height: 1.1,
                 ),
@@ -1221,7 +1127,7 @@ class _Detail extends StatelessWidget {
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppColors.primary,
-                  fontSize: 13,
+                  fontSize: 14.5,
                   letterSpacing: 0,
                   height: 1.15,
                 ),
@@ -1274,10 +1180,10 @@ class _Detail extends StatelessWidget {
                   Text(
                     (isOrigin ? 'pickup'.tr : 'dropoff'.tr).toUpperCase(),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.outline,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.45,
-                      fontSize: 8.5,
+                      color: AppColors.secondary.withValues(alpha: 0.62),
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.3,
+                      fontSize: 12.5,
                       height: 1.1,
                     ),
                   ),
@@ -1287,20 +1193,19 @@ class _Detail extends StatelessWidget {
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.secondary,
-                      fontSize: 14,
+                      fontSize: 15,
                       height: 1.15,
                     ),
                   ),
                   if (address != null) ...[
-                    const SizedBox(height: 1),
+                    const SizedBox(height: 3),
                     Text(
                       address,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.outline,
-                        fontSize: 11,
-                        height: 1.25,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.secondary.withValues(alpha: 0.75),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5,
+                        height: 1.3,
                       ),
                     ),
                   ],
@@ -1334,7 +1239,7 @@ class _Detail extends StatelessWidget {
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurface,
                                 fontWeight: FontWeight.w600,
-                                fontSize: 11,
+                                fontSize: 12.5,
                               ),
                             ),
                           ),
@@ -1436,8 +1341,9 @@ class _Detail extends StatelessWidget {
                     Text(
                       'operator'.tr,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.outline,
-                        fontSize: 11,
+                        color: AppColors.secondary.withValues(alpha: 0.66),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.5,
                       ),
                     ),
                   ],
@@ -1519,7 +1425,7 @@ class _Detail extends StatelessWidget {
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: AppColors.secondary,
                     fontWeight: FontWeight.w700,
-                    fontSize: 11,
+                    fontSize: 12.5,
                     letterSpacing: 0,
                   ),
                 ),
@@ -1604,10 +1510,10 @@ class _SectionCard extends StatelessWidget {
             Text(
               title!.toUpperCase(),
               style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.outline,
+                color: AppColors.secondary.withValues(alpha: 0.62),
                 fontWeight: FontWeight.w800,
-                letterSpacing: 0.55,
-                fontSize: 9.5,
+                letterSpacing: 0.4,
+                fontSize: 12.5,
                 height: 1,
               ),
             ),
@@ -1764,8 +1670,8 @@ class _EmptyDetailState extends StatelessWidget {
   }
 }
 
-/// Bottom action dock: one glanceable stage CTA. Tap for routine steps;
-/// swipe for the final, irreversible drop.
+/// Bottom action dock: one glanceable CTA into the map, where the trip steps
+/// (start, arrived, met passenger, drop) are actually taken.
 class _ActionBar extends StatelessWidget {
   const _ActionBar({required this.b, required this.controller});
 
@@ -1778,17 +1684,21 @@ class _ActionBar extends StatelessWidget {
       return _staleStartAction(context);
     }
 
-    return Obx(() {
-      // Final step is a deliberate swipe, and the confirmation it opens is
-      // where onboard money is taken - there is no separate collect button.
-      if (b.allows('complete')) {
-        return SwipeToConfirm(
-          label: 'swipe_to_drop'.tr,
-          loading: controller.isActing.value,
-          onConfirmed: controller.complete,
-        );
-      }
+    // A trip whose departure is still too far off cannot be started yet, but
+    // the driver may well want to see where they are going. Give them the
+    // route and nothing else.
+    final isFutureTrip = b.isUpcomingOnly;
 
+    if (isFutureTrip) {
+      return StepActionButton(
+        label: 'view_pickup_route'.tr,
+        icon: IconsaxPlusLinear.routing_2,
+        onPressed: controller.openMap,
+      );
+    }
+
+    return Obx(() {
+      // Resolving a stale trip is not a trip step - it stays here.
       if (b.allows('resolve_completed')) {
         return StepActionButton(
           label: 'resolve_trip'.tr,
@@ -1802,34 +1712,17 @@ class _ActionBar extends StatelessWidget {
         );
       }
 
-      final action = b.allowedActions.isNotEmpty
-          ? b.allowedActions.first
-          : null;
-      if (action == null) return const SizedBox.shrink();
+      if (b.allowedActions.isEmpty) return const SizedBox.shrink();
 
-      final (String label, IconData icon) = switch (action) {
-        'start' => (
-          b.isStartOverdue ? 'start_trip_now'.tr : 'start_now'.tr,
-          IconsaxPlusLinear.play,
-        ),
-        'arrived' => ('mark_arrived'.tr, IconsaxPlusLinear.location_tick),
-        'meet_passenger' => (
-          'meet_passenger'.tr,
-          IconsaxPlusLinear.profile_tick,
-        ),
-        _ => ('start_now'.tr, IconsaxPlusLinear.play),
-      };
+      // A look at the route before setting off, then a way back to the live
+      // trip once it is running.
+      final isStart = b.allows('start');
 
       return StepActionButton(
-        label: label,
-        icon: icon,
+        label: isStart ? 'view_pickup_route'.tr : 'track_your_trip'.tr,
+        icon: isStart ? IconsaxPlusLinear.routing_2 : IconsaxPlusLinear.gps,
         loading: controller.isActing.value,
-        // Confirm first: advancing a step cannot be undone from the app.
-        onPressed: () async {
-          if (await confirmStepAction(action)) {
-            controller.runAction(action);
-          }
-        },
+        onPressed: controller.openMap,
       );
     });
   }
@@ -1870,7 +1763,7 @@ class _ActionBar extends StatelessWidget {
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: color.withValues(alpha: 0.88),
                     fontWeight: FontWeight.w700,
-                    fontSize: 12.5,
+                    fontSize: 13,
                     letterSpacing: 0,
                   ),
                 ),
@@ -1947,7 +1840,7 @@ class _StartOverdueNotice extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(
                 color: color.withValues(alpha: 0.94),
                 fontWeight: FontWeight.w600,
-                fontSize: 11.5,
+                fontSize: 12.5,
                 height: 1.25,
                 letterSpacing: 0,
               ),

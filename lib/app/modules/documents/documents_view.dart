@@ -22,7 +22,14 @@ class DocumentsView extends GetView<DocumentsController> {
         leadingWidth: 64,
         leading: const AppBackButton(),
         titleSpacing: 0,
-        title: Text('documents'.tr),
+        title: Text(
+          'documents'.tr,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontSize: 21,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
+          ),
+        ),
       ),
       body: Obx(() {
         if (controller.isLoading.value) return const LoadingView();
@@ -50,14 +57,19 @@ class DocumentsView extends GetView<DocumentsController> {
                 children: [
                   Icon(
                     IconsaxPlusLinear.lock_1,
-                    size: 14,
-                    color: theme.colorScheme.outline,
+                    size: 16,
+                    color: AppColors.secondary.withValues(alpha: 0.7),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'documents_note'.tr,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.outline,
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      'documents_note'.tr,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                        color: AppColors.secondary.withValues(alpha: 0.7),
+                      ),
                     ),
                   ),
                 ],
@@ -114,7 +126,10 @@ class _DocumentCard extends StatelessWidget {
                 child: Text(
                   doc.label,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.1,
+                    height: 1.2,
                   ),
                 ),
               ),
@@ -133,6 +148,9 @@ class _DocumentCard extends StatelessWidget {
             Text(
               doc.rejectionReason!,
               style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+                height: 1.3,
                 color: theme.colorScheme.error,
               ),
             ),
@@ -159,6 +177,7 @@ class _DocumentCard extends StatelessWidget {
         Text(
           '$label: ',
           style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 14,
             color: theme.colorScheme.outline,
           ),
         ),
@@ -166,7 +185,8 @@ class _DocumentCard extends StatelessWidget {
           child: Text(
             value,
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
+              fontSize: 14.5,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -205,6 +225,10 @@ class _FileTile extends StatelessWidget {
     return ActionChip(
       avatar: const Icon(IconsaxPlusLinear.document_text, size: 16),
       label: Text('view_file'.tr),
+      labelStyle: theme.textTheme.labelLarge?.copyWith(
+        fontSize: 13.5,
+        fontWeight: FontWeight.w600,
+      ),
       onPressed: () => ExternalLauncher.openUrl(file.url),
     );
   }
@@ -277,8 +301,8 @@ class _StatusBadge extends StatelessWidget {
         label ?? status ?? '—',
         style: TextStyle(
           color: color,
-          fontWeight: FontWeight.w600,
-          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
         ),
       ),
     );

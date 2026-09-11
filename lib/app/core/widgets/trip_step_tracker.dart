@@ -139,7 +139,7 @@ class _Step extends StatelessWidget {
           style: theme.textTheme.labelSmall?.copyWith(
             color: isPrimary ? AppColors.primary : AppColors.secondary,
             fontWeight: FontWeight.w700,
-            fontSize: 9.5,
+            fontSize: 11,
             letterSpacing: 0,
             height: 1.1,
           ),

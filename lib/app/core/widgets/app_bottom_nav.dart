@@ -111,7 +111,9 @@ class _NavButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final color = selected ? scheme.primary : scheme.onSurfaceVariant;
+    final color = selected
+        ? scheme.primary
+        : AppColors.secondary.withValues(alpha: 0.6);
 
     return InkWell(
       onTap: onTap,
@@ -132,18 +134,19 @@ class _NavButton extends StatelessWidget {
             Icon(
               selected ? item.selectedIcon : item.icon,
               color: color,
-              size: 21,
+              size: 22,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               item.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 10.5,
+                fontSize: 12,
                 height: 1,
+                letterSpacing: 0,
                 color: color,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
               ),
             ),
           ],

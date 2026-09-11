@@ -11,7 +11,16 @@ class GuideView extends GetView<GuideController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('guide_title'.tr)),
+      appBar: AppBar(
+        title: Text(
+          'guide_title'.tr,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            fontSize: 21,
+            letterSpacing: -0.2,
+          ),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.pageH,
@@ -130,6 +139,7 @@ class _GuideHeader extends StatelessWidget {
                 child: Text(
                   'guide_driver_note'.tr,
                   style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 13.5,
                     color: theme.colorScheme.primary,
                     fontWeight: FontWeight.w700,
                     height: 1.25,
@@ -160,6 +170,7 @@ class _SectionHeading extends StatelessWidget {
         Text(
           title,
           style: theme.textTheme.titleMedium?.copyWith(
+            fontSize: 19,
             fontWeight: FontWeight.w800,
             height: 1.15,
           ),
@@ -169,6 +180,7 @@ class _SectionHeading extends StatelessWidget {
           Text(
             subtitle!,
             style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 13.5,
               color: theme.colorScheme.outline,
               height: 1.35,
             ),
@@ -281,6 +293,7 @@ class _PlatformSupportSection extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.titleSmall?.copyWith(
+                                fontSize: 15.5,
                                 fontWeight: FontWeight.w800,
                                 height: 1.15,
                               ),
@@ -291,6 +304,7 @@ class _PlatformSupportSection extends StatelessWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 13,
                                 color: theme.colorScheme.outline,
                                 height: 1.25,
                               ),
@@ -382,6 +396,7 @@ class _ContactLine extends StatelessWidget {
                     Text(
                       label,
                       style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 11.5,
                         color: theme.colorScheme.outline,
                         fontWeight: FontWeight.w700,
                       ),
@@ -392,6 +407,7 @@ class _ContactLine extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 14.5,
                         fontWeight: FontWeight.w800,
                         height: 1.2,
                       ),
@@ -444,6 +460,7 @@ class _AddressPanel extends StatelessWidget {
                 Text(
                   'guide_office_address'.tr,
                   style: theme.textTheme.labelMedium?.copyWith(
+                    fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -453,6 +470,7 @@ class _AddressPanel extends StatelessWidget {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 13.5,
                     color: theme.colorScheme.outline,
                     height: 1.35,
                   ),
@@ -544,6 +562,7 @@ class _SocialLinkTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelMedium?.copyWith(
+                    fontSize: 14,
                     fontWeight: FontWeight.w800,
                     height: 1.1,
                   ),
@@ -582,7 +601,10 @@ class _SupportLoadingCard extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
             const SizedBox(width: AppSpacing.md),
-            Text('guide_support_loading'.tr, style: theme.textTheme.bodyMedium),
+            Text(
+              'guide_support_loading'.tr,
+              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
+            ),
           ],
         ),
       ),
@@ -709,6 +731,7 @@ class _VideoCardState extends State<_VideoCard> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(
+                        fontSize: 15.5,
                         fontWeight: FontWeight.w800,
                         height: 1.18,
                       ),
@@ -725,6 +748,7 @@ class _VideoCardState extends State<_VideoCard> {
                           ? TextOverflow.visible
                           : TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 13.5,
                         color: theme.colorScheme.outline,
                         height: 1.32,
                       ),
@@ -744,6 +768,7 @@ class _VideoCardState extends State<_VideoCard> {
                           child: Text(
                             meta.label,
                             style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 11.5,
                               color: meta.color,
                               fontWeight: FontWeight.w800,
                               height: 1,
@@ -758,6 +783,7 @@ class _VideoCardState extends State<_VideoCard> {
                             child: Text(
                               readToggleLabel,
                               style: theme.textTheme.labelSmall?.copyWith(
+                                fontSize: 12.5,
                                 color: theme.colorScheme.primary,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -771,6 +797,7 @@ class _VideoCardState extends State<_VideoCard> {
                       Text(
                         'guide_text_only'.tr,
                         style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 12.5,
                           color: theme.colorScheme.outline,
                         ),
                       ),
@@ -862,6 +889,7 @@ Future<void> _showGuideDetailSheet(
                           Text(
                             title,
                             style: theme.textTheme.titleMedium?.copyWith(
+                              fontSize: 20,
                               fontWeight: FontWeight.w900,
                               height: 1.18,
                             ),
@@ -870,6 +898,7 @@ Future<void> _showGuideDetailSheet(
                           Text(
                             meta.label,
                             style: theme.textTheme.labelMedium?.copyWith(
+                              fontSize: 13,
                               color: meta.color,
                               fontWeight: FontWeight.w800,
                             ),
@@ -883,6 +912,7 @@ Future<void> _showGuideDetailSheet(
                 Text(
                   summary,
                   style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 15,
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.76),
                     height: 1.45,
                   ),
@@ -900,10 +930,11 @@ Future<void> _showGuideDetailSheet(
                     child: Text(
                       description,
                       style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 15,
                         color: theme.colorScheme.onSurface.withValues(
                           alpha: 0.72,
                         ),
-                        height: 1.45,
+                        height: 1.5,
                       ),
                     ),
                   ),
@@ -1000,7 +1031,10 @@ class _VideoLoadingCard extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
             const SizedBox(width: AppSpacing.md),
-            Text('guide_videos_loading'.tr, style: theme.textTheme.bodyMedium),
+            Text(
+              'guide_videos_loading'.tr,
+              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
+            ),
           ],
         ),
       ),
@@ -1031,7 +1065,15 @@ class _VideoStateCard extends StatelessWidget {
           children: [
             Icon(icon, color: theme.colorScheme.outline),
             const SizedBox(width: AppSpacing.md),
-            Expanded(child: Text(title, style: theme.textTheme.bodyMedium)),
+            Expanded(
+              child: Text(
+                title,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.78),
+                ),
+              ),
+            ),
             TextButton(onPressed: onAction, child: Text(actionLabel)),
           ],
         ),

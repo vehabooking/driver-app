@@ -5,7 +5,6 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/collect_payment_pill.dart';
-import '../../../core/widgets/trip_step_tracker.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/booking_list_item.dart';
 
@@ -15,9 +14,6 @@ class BookingCard extends StatelessWidget {
 
   final BookingListItem booking;
   final VoidCallback onTap;
-
-  bool get _showSteps =>
-      booking.stage != 'cancelled' && booking.stage != 'pickup_issue';
 
   @override
   Widget build(BuildContext context) {
@@ -65,17 +61,6 @@ class BookingCard extends StatelessWidget {
                 _mainGrid(theme),
                 const SizedBox(height: AppSpacing.sm),
                 _vehicleLine(theme),
-                if (_showSteps) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  TripStepTracker(
-                    stage: booking.stage,
-                    driverTripStatus: booking.driverTripStatus,
-                  ),
-                ],
-                if (booking.nextAction != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  _nextActionHint(theme),
-                ],
               ],
             ),
           ),
@@ -87,14 +72,32 @@ class BookingCard extends StatelessWidget {
   Widget _header(ThemeData theme) {
     return Row(
       children: [
+        Text(
+          booking.code ?? '—',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: AppColors.secondary,
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+            letterSpacing: 0,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Container(
+          width: 1,
+          height: 11,
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+        ),
+        const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Text(
-            booking.code ?? '—',
+            _tripMeta(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: AppColors.secondary,
-              fontWeight: FontWeight.w800,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: AppColors.secondary.withValues(alpha: 0.84),
+              fontWeight: FontWeight.w500,
               fontSize: 12,
               letterSpacing: 0,
             ),
@@ -122,7 +125,7 @@ class BookingCard extends StatelessWidget {
         style: theme.textTheme.labelSmall?.copyWith(
           color: color,
           fontWeight: FontWeight.w800,
-          fontSize: 10,
+          fontSize: 10.5,
           letterSpacing: 0,
           height: 1,
         ),
@@ -284,7 +287,7 @@ class BookingCard extends StatelessWidget {
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.outline,
             fontWeight: FontWeight.w700,
-            fontSize: 8,
+            fontSize: 10.5,
             letterSpacing: 0.35,
             height: 1,
           ),
@@ -297,7 +300,7 @@ class BookingCard extends StatelessWidget {
           style: theme.textTheme.titleSmall?.copyWith(
             color: AppColors.secondary,
             fontWeight: FontWeight.w700,
-            fontSize: 12.5,
+            fontSize: 15,
             letterSpacing: 0,
             height: 1.15,
           ),
@@ -310,20 +313,6 @@ class BookingCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(
-          _tripMeta(),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.right,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: AppColors.secondary.withValues(alpha: 0.84),
-            fontWeight: FontWeight.w500,
-            fontSize: 11,
-            letterSpacing: 0,
-            height: 1.1,
-          ),
-        ),
-        const SizedBox(height: 8),
         _dateLine(theme, _legLabel(), booking.displayDepartureDatetime),
         if (booking.isRoundTrip && _linkedWhen().isNotEmpty) ...[
           const SizedBox(height: 5),
@@ -338,7 +327,7 @@ class BookingCard extends StatelessWidget {
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.outline,
             fontWeight: FontWeight.w700,
-            fontSize: 8,
+            fontSize: 10.5,
             letterSpacing: 0.35,
             height: 1,
           ),
@@ -352,7 +341,7 @@ class BookingCard extends StatelessWidget {
           style: theme.textTheme.labelLarge?.copyWith(
             color: AppColors.secondary.withValues(alpha: 0.92),
             fontWeight: FontWeight.w600,
-            fontSize: 12,
+            fontSize: 13.5,
             letterSpacing: 0,
             height: 1.15,
           ),
@@ -365,10 +354,10 @@ class BookingCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.right,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.outline,
-              fontWeight: FontWeight.w400,
-              fontSize: 10,
-              height: 1.1,
+              color: AppColors.secondary.withValues(alpha: 0.7),
+              fontWeight: FontWeight.w600,
+              fontSize: 12.5,
+              height: 1.15,
             ),
           ),
         ],
@@ -405,7 +394,7 @@ class BookingCard extends StatelessWidget {
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.outline,
             fontWeight: FontWeight.w700,
-            fontSize: 8,
+            fontSize: 10.5,
             letterSpacing: 0.3,
             height: 1,
           ),
@@ -419,7 +408,7 @@ class BookingCard extends StatelessWidget {
           style: theme.textTheme.labelLarge?.copyWith(
             color: muted ? theme.colorScheme.outline : AppColors.secondary,
             fontWeight: muted ? FontWeight.w500 : FontWeight.w700,
-            fontSize: muted ? 10.5 : 11.5,
+            fontSize: muted ? 11.5 : 12.5,
             letterSpacing: 0,
             height: 1.1,
           ),
@@ -450,91 +439,69 @@ class BookingCard extends StatelessWidget {
       if (booking.assignedVehicleLabel?.isNotEmpty == true)
         booking.assignedVehicleLabel!,
       if (booking.vehicleColor?.isNotEmpty == true) booking.vehicleColor!,
-      if (booking.vehicleSeats != null)
-        '${booking.vehicleSeats} ${'seats'.tr.toLowerCase()}',
     ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: 10,
+      ),
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.045),
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(IconsaxPlusLinear.car, size: 15, color: AppColors.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: AppColors.secondary,
-                fontWeight: FontWeight.w700,
-                fontSize: 11.5,
-                letterSpacing: 0,
-              ),
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+            ),
+            child: const Icon(
+              IconsaxPlusLinear.car,
+              size: 17,
+              color: AppColors.primary,
             ),
           ),
-          if (details.isNotEmpty) ...[
-            const SizedBox(width: AppSpacing.sm),
-            Flexible(
-              child: Text(
-                details.join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.right,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.outline,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 10,
-                  letterSpacing: 0,
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: AppColors.secondary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14.5,
+                    letterSpacing: 0,
+                    height: 1.2,
+                  ),
                 ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _nextActionHint(ThemeData theme) {
-    final action = booking.nextAction;
-    final (String label, IconData icon) = switch (action) {
-      'start' => ('start_now'.tr, IconsaxPlusLinear.play),
-      'arrived' => ('mark_arrived'.tr, IconsaxPlusLinear.location_tick),
-      'resolve_completed' => ('resolve_trip'.tr, IconsaxPlusLinear.tick_circle),
-      'meet_passenger' => ('meet_passenger'.tr, IconsaxPlusLinear.profile_tick),
-      'complete' => ('drop_passenger'.tr, IconsaxPlusLinear.arrow_right_3),
-      _ => ('open_trip'.tr, IconsaxPlusLinear.arrow_right_3),
-    };
-    final color = AppColors.forStage(booking.stage);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-                fontSize: 11,
-                letterSpacing: 0,
-              ),
+                if (details.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    details.join('  ·  '),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary.withValues(alpha: 0.74),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      letterSpacing: 0,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          Icon(IconsaxPlusLinear.arrow_right_3, size: 14, color: color),
         ],
       ),
     );

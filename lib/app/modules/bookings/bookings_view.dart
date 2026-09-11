@@ -155,6 +155,7 @@ class _BookingsHeader extends StatelessWidget {
                 return Text(
                   copy,
                   style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 13,
                     color: theme.colorScheme.outline,
                     fontWeight: FontWeight.w600,
                   ),
@@ -311,7 +312,7 @@ class _Badge extends StatelessWidget {
         '$count',
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 11.5,
           height: 1.2,
           fontWeight: FontWeight.w800,
           color: selected ? Colors.white : AppColors.primary,
@@ -337,6 +338,7 @@ class _SectionHeader extends StatelessWidget {
           Text(
             label.toUpperCase(),
             style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: 11.5,
               color: theme.colorScheme.outline,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.6,

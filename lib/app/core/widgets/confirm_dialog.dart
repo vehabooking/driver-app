@@ -69,8 +69,10 @@ Future<bool> showConfirmDialog({
         message,
         textAlign: centered ? TextAlign.center : TextAlign.start,
         style: theme.textTheme.bodyMedium?.copyWith(
-          height: 1.35,
-          color: theme.colorScheme.onSurfaceVariant,
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          height: 1.4,
+          color: AppColors.secondary.withValues(alpha: 0.78),
         ),
       ),
       actions: [
