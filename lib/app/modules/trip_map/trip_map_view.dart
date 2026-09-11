@@ -84,6 +84,7 @@ class _TripMapViewState extends State<TripMapView> {
   bool _isSyncingLocation = false;
   bool _isSheetCollapsed = false;
   bool _isLoadingBooking = false;
+  int _bookingRetries = 0;
   bool _isActing = false;
   BookingDetail? _booking;
 
@@ -215,7 +216,15 @@ class _TripMapViewState extends State<TripMapView> {
       if (!mounted) return;
       setState(() => _booking = booking);
     } catch (_) {
-      // Route navigation stays usable when booking refresh is unavailable.
+      // Route navigation stays usable when the booking fetch fails, but the
+      // step buttons do not - so come back quickly rather than waiting for
+      // the 30s route timer.
+      if (mounted && _bookingRetries < 3) {
+        _bookingRetries++;
+        Future<void>.delayed(const Duration(seconds: 3), () {
+          if (mounted && _booking == null) unawaited(_loadBooking());
+        });
+      }
     } finally {
       _isLoadingBooking = false;
     }
@@ -880,6 +889,10 @@ class _TripMapViewState extends State<TripMapView> {
 
   Future<void> _refreshRouteIfNeeded() async {
     if (!mounted || _isLocating) return;
+
+    // The step buttons are driven by _booking. If the first fetch failed the
+    // driver has no way to advance the trip, so keep trying.
+    if (_booking == null) unawaited(_loadBooking());
 
     try {
       final location = await Get.find<LocationService>().current();
