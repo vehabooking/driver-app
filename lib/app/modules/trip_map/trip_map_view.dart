@@ -371,8 +371,14 @@ class _TripMapViewState extends State<TripMapView> {
     }
   }
 
+  /// The trip is done, so send the driver back to Home rather than to the
+  /// screen they happened to open the map from. Home is reached only through
+  /// `Get.offAllNamed`, so it is the first route on the stack; popping to it
+  /// also fires the `.then(load)` on every route in between, refreshing the
+  /// dashboard counts and the next pickup.
   void _leaveAfterCompletion() {
-    if (mounted) Get.back(result: true);
+    if (!mounted) return;
+    Get.until((route) => route.isFirst);
   }
 
   /// Posts one trip step. Returns the failure instead of reporting it, so the
@@ -391,7 +397,9 @@ class _TripMapViewState extends State<TripMapView> {
       );
       if (!mounted) return;
       AppSnackbar.success('pickup_issue_reported'.tr);
-      Get.back<void>();
+      // Closing with a pickup issue ends the leg, same as a drop - send the
+      // driver Home, ready for the next booking.
+      _leaveAfterCompletion();
     } on ApiException catch (error) {
       AppSnackbar.error(error.message);
     } catch (_) {
