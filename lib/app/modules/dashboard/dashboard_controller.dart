@@ -448,7 +448,14 @@ class DashboardController extends GetxController {
 
     final mode = _trackingModeFor(next);
     if (mode != DriverTrackingMode.live) {
-      unawaited(_trackingService.stopLive());
+      // Only this pickup's session: a live trip the driver is already on must
+      // survive a dashboard refresh that happens to look at another booking.
+      unawaited(
+        _trackingService.stopLive(
+          uuid: next.uuid,
+          assignmentId: next.assignmentId,
+        ),
+      );
     }
 
     _trackingService.watch(

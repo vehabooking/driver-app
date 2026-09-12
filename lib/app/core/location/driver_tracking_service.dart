@@ -153,13 +153,23 @@ class DriverTrackingService extends GetxService {
     await BackgroundTrackingService.stop();
   }
 
-  /// Stop the background session. When [uuid]/[assignmentId] are given, only
-  /// stops a session that tracks that exact trip.
-  Future<void> stopLive({String? uuid, int? assignmentId}) async {
-    if (uuid != null && assignmentId != null) {
-      final target = await BackgroundTrackingService.runningTarget();
-      if (target != null && !target.matches(uuid, assignmentId)) return;
-    }
+  /// Stop the background session tracking [uuid]/[assignmentId], and only that
+  /// one.
+  ///
+  /// The trip is required. A bare `stopLive()` skipped the ownership check and
+  /// stopped whatever session was running, so a dashboard refresh whose next
+  /// pickup was not live tore down the foreground service of a trip already
+  /// under way - the live map then saw one fix and nothing more. Use [stop] to
+  /// end tracking outright (logout, no trip at all).
+  Future<void> stopLive({
+    required String uuid,
+    required int? assignmentId,
+  }) async {
+    if (uuid.isEmpty || assignmentId == null) return;
+
+    final target = await BackgroundTrackingService.runningTarget();
+    if (target != null && !target.matches(uuid, assignmentId)) return;
+
     await BackgroundTrackingService.stop();
   }
 
