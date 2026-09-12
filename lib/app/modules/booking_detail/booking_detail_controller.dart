@@ -377,29 +377,12 @@ class BookingDetailController extends GetxController {
   }
 
   DriverTrackingMode _trackingModeFor(BookingDetail b) {
-    final status = b.status;
-    final driverStatus = b.driverTripStatus;
-
-    if (status == 'completed' ||
-        status == 'cancelled' ||
-        b.pickupIssueReason != null) {
-      return DriverTrackingMode.off;
-    }
-
-    if (driverStatus == 'start' ||
-        driverStatus == 'arrived_location' ||
-        driverStatus == 'meet_passenger' ||
-        b.stage == 'on_trip') {
-      return DriverTrackingMode.live;
-    }
-
-    if (driverStatus == 'assigned' ||
-        b.stage == 'assigned' ||
-        b.stage == 'accepted') {
-      return DriverTrackingMode.snapshot;
-    }
-
-    return DriverTrackingMode.off;
+    return DriverTrackingService.modeFor(
+      bookingStatus: b.status,
+      driverTripStatus: b.driverTripStatus,
+      stage: b.stage,
+      hasPickupIssue: b.pickupIssueReason != null,
+    );
   }
 
   void _maybeShowNearPickupReminder(

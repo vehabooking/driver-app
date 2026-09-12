@@ -8,6 +8,8 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
+import '../../core/location/background_tracking_service.dart';
+import '../../core/location/driver_tracking_service.dart';
 import '../../core/location/location_service.dart';
 import '../../core/location/pickup_arrival_gate.dart';
 import '../../core/maps/route_map_args.dart';
@@ -65,7 +67,7 @@ class TripMapView extends StatefulWidget {
   State<TripMapView> createState() => _TripMapViewState();
 }
 
-class _TripMapViewState extends State<TripMapView> {
+class _TripMapViewState extends State<TripMapView> with WidgetsBindingObserver {
   GoogleMapController? _mapController;
   DriverLocation? _driverLocation;
   DriverLocation? _lastRouteLocation;
@@ -87,6 +89,10 @@ class _TripMapViewState extends State<TripMapView> {
   int _bookingRetries = 0;
   bool _isActing = false;
   BookingDetail? _booking;
+
+  /// Whether the background session is posting for this trip. While it is, this
+  /// screen only draws - posting from here as well wrote two rows per fix.
+  bool _backgroundTrackingActive = false;
 
   /// True once the camera has framed the real road route. Early fits (a lone
   /// pickup pin, a straight line before Routes answers) do not count, or the
@@ -116,6 +122,7 @@ class _TripMapViewState extends State<TripMapView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(_prepareMarkerIcons());
     unawaited(_loadBooking());
     unawaited(_refreshLocation());
@@ -123,8 +130,21 @@ class _TripMapViewState extends State<TripMapView> {
     _startRouteRefreshTimer();
   }
 
+  /// The driver spends the whole trip on this screen, so it is the last place
+  /// that can notice the background session has died (killed by the OS, or by
+  /// an aggressive vendor battery manager). Coming back to the foreground is
+  /// the cheapest moment to check.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_ensureTrackingSession());
+    }
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _routeRefreshTimer?.cancel();
     _locationSubscription?.cancel();
     _mapController?.dispose();
@@ -871,6 +891,9 @@ class _TripMapViewState extends State<TripMapView> {
 
     if (!movedEnough && !waitedEnough) return;
 
+    // The background session already posts this trip at its own cadence.
+    if (_backgroundTrackingActive) return;
+
     _isSyncingLocation = true;
     try {
       await Get.find<BookingRepository>().storeLocation(
@@ -887,6 +910,40 @@ class _TripMapViewState extends State<TripMapView> {
     }
   }
 
+  /// Restart the live background session when it is missing, and record
+  /// whether it is running so [_syncLocationForObservers] knows to stand down.
+  ///
+  /// Nothing else does this while the trip map is open: the dashboard and the
+  /// booking screen only re-ensure on their own load, so a session that died
+  /// mid-trip used to stay dead until the driver navigated back to one of them
+  /// - the live map showed a frozen pin for the rest of the trip.
+  Future<void> _ensureTrackingSession() async {
+    final booking = _booking;
+    final assignmentId = args.assignmentId;
+    if (booking == null || assignmentId == null) return;
+
+    final mode = DriverTrackingService.modeFor(
+      bookingStatus: booking.status,
+      driverTripStatus: booking.driverTripStatus,
+      stage: booking.stage,
+      hasPickupIssue: booking.pickupIssueReason != null,
+    );
+
+    if (mode == DriverTrackingMode.live) {
+      Get.find<DriverTrackingService>().watch(
+        uuid: args.uuid,
+        assignmentId: assignmentId,
+        mode: mode,
+      );
+    }
+
+    final target = await BackgroundTrackingService.runningTarget();
+    if (!mounted) return;
+
+    _backgroundTrackingActive =
+        target != null && target.matches(args.uuid, assignmentId);
+  }
+
   void _startRouteRefreshTimer() {
     _routeRefreshTimer?.cancel();
     _routeRefreshTimer = Timer.periodic(
@@ -897,6 +954,8 @@ class _TripMapViewState extends State<TripMapView> {
 
   Future<void> _refreshRouteIfNeeded() async {
     if (!mounted || _isLocating) return;
+
+    unawaited(_ensureTrackingSession());
 
     // The step buttons are driven by _booking. If the first fetch failed the
     // driver has no way to advance the trip, so keep trying.

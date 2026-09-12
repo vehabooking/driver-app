@@ -306,6 +306,15 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
   StreamSubscription<Position>? _positions;
   Position? _latest;
   bool _isPosting = false;
+  Position? _lastPosted;
+  DateTime? _lastPostedAt;
+
+  /// A parked driver still has to prove the phone is alive, but not twenty
+  /// times a minute: below [_stationaryMeters] of movement the post drops to
+  /// [_stationaryInterval]. Kept well under the dashboard's 120s staleness
+  /// deadline, so waiting at the pickup never reads as "gone quiet".
+  static const double _stationaryMeters = 15;
+  static const Duration _stationaryInterval = Duration(seconds: 60);
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
@@ -469,6 +478,7 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
       // Never report a position the device recorded long ago: a stale fix
       // posted as current is worse than a gap in the trail.
       if (position == null || !_isFresh(position, _maxFixAge)) return;
+      if (_isRedundant(position)) return;
 
       final speedKmh = _speedKmh(position.speed);
       final payload = <String, dynamic>{
@@ -490,6 +500,9 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
         locale: _locale ?? 'en_US',
       );
 
+      _lastPosted = position;
+      _lastPostedAt = DateTime.now();
+
       FlutterForegroundTask.sendDataToMain({
         'type': BackgroundTrackingService.eventLocation,
         'uuid': uuid,
@@ -505,6 +518,23 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
     } finally {
       _isPosting = false;
     }
+  }
+
+  /// A fix the server already has: same spot, posted moments ago.
+  bool _isRedundant(Position position) {
+    final last = _lastPosted;
+    final lastAt = _lastPostedAt;
+    if (last == null || lastAt == null) return false;
+
+    if (DateTime.now().difference(lastAt) >= _stationaryInterval) return false;
+
+    return Geolocator.distanceBetween(
+          last.latitude,
+          last.longitude,
+          position.latitude,
+          position.longitude,
+        ) <
+        _stationaryMeters;
   }
 
   double? _speedKmh(double metersPerSecond) {

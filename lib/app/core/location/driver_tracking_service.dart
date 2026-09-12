@@ -38,6 +38,38 @@ class DriverTrackingService extends GetxService {
     this._storage,
   );
 
+  /// The tracking a trip in this state deserves.
+  ///
+  /// Shared by every screen that starts or re-ensures a session, so the trip
+  /// map cannot revive a session the booking screen would have left alone.
+  static DriverTrackingMode modeFor({
+    String? bookingStatus,
+    String? driverTripStatus,
+    String? stage,
+    bool hasPickupIssue = false,
+  }) {
+    if (bookingStatus == 'completed' ||
+        bookingStatus == 'cancelled' ||
+        hasPickupIssue) {
+      return DriverTrackingMode.off;
+    }
+
+    if (driverTripStatus == 'start' ||
+        driverTripStatus == 'arrived_location' ||
+        driverTripStatus == 'meet_passenger' ||
+        stage == 'on_trip') {
+      return DriverTrackingMode.live;
+    }
+
+    if (driverTripStatus == 'assigned' ||
+        stage == 'assigned' ||
+        stage == 'accepted') {
+      return DriverTrackingMode.snapshot;
+    }
+
+    return DriverTrackingMode.off;
+  }
+
   static const Duration snapshotInterval = Duration(minutes: 3);
   static const Duration liveInterval =
       BackgroundTrackingService.defaultInterval;
