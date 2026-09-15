@@ -476,4 +476,11 @@ const Map<String, String> enUS = {
   'stale_trip_title': 'This trip is still open',
   'stale_trip_detail':
       'The expected trip window has passed. If the ride finished, resolve it below. Otherwise report a pickup issue.',
+
+  // Force update — shown over the whole app when the store has a newer version.
+  'update_required_title': 'Update required',
+  'update_required_message':
+      'A new version of Veha Driver is available. Please update to keep using the app.',
+  'update_version_line': 'Your version @current · Latest @latest',
+  'update_now': 'Update now',
 };

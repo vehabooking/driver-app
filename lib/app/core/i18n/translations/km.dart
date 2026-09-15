@@ -468,4 +468,11 @@ const Map<String, String> kmKH = {
   'stale_trip_title': 'ដំណើរនេះនៅមិនទាន់បញ្ចប់',
   'stale_trip_detail':
       'ពេលវេលារំពឹងទុកនៃដំណើរបានកន្លងផុត។ ប្រសិនបើដំណើរបានបញ្ចប់ សូមដោះស្រាយខាងក្រោម។ បើមិនដូច្នោះទេ សូមរាយការណ៍បញ្ហាទទួលភ្ញៀវ។',
+
+  // Force update — shown over the whole app when the store has a newer version.
+  'update_required_title': 'ត្រូវការធ្វើបច្ចុប្បន្នភាព',
+  'update_required_message':
+      'មានកំណែថ្មីនៃកម្មវិធី Veha Driver។ សូមធ្វើបច្ចុប្បន្នភាព ដើម្បីបន្តប្រើប្រាស់កម្មវិធី។',
+  'update_version_line': 'កំណែរបស់អ្នក @current · កំណែថ្មី @latest',
+  'update_now': 'ធ្វើបច្ចុប្បន្នភាពឥឡូវនេះ',
 };

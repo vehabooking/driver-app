@@ -13,6 +13,7 @@ import 'app/core/routes/app_pages.dart';
 import 'app/core/routes/app_routes.dart';
 import 'app/core/storage/storage_service.dart';
 import 'app/core/theme/app_theme.dart';
+import 'app/core/update/force_update_gate.dart';
 import 'app/data/repositories/auth_repository.dart';
 import 'app/data/repositories/booking_repository.dart';
 import 'app/data/repositories/guide_repository.dart';
@@ -120,7 +121,7 @@ class VehaDriverApp extends StatelessWidget {
             justifyMultiLineText: true,
             textBorderRadius: const TextBoneBorderRadius.fromHeightFactor(0.5),
           ),
-          child: _MobileAppFrame(child: child),
+          child: _MobileAppFrame(child: ForceUpdateGate(child: child)),
         );
       },
       initialRoute: Routes.splash,
