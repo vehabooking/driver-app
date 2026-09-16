@@ -313,6 +313,13 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
   /// times a minute: below [_stationaryMeters] of movement the post drops to
   /// [_stationaryInterval]. Kept well under the dashboard's 120s staleness
   /// deadline, so waiting at the pickup never reads as "gone quiet".
+  /// Server answers that mean this session can never succeed again.
+  static const Set<String> _terminalErrorCodes = {
+    'TRACKING_CLOSED',
+    'ASSIGNMENT_NOT_FOUND',
+    'BOOKING_NOT_OWNED',
+  };
+
   static const double _stationaryMeters = 15;
   static const Duration _stationaryInterval = Duration(seconds: 60);
 
@@ -493,12 +500,23 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
         'provider': 'foreground_service',
       };
 
-      await _send(
+      final errorCode = await _send(
         Uri.parse('$baseUrl/bookings/$uuid/location'),
         payload,
         token: token,
         locale: _locale ?? 'en_US',
       );
+
+      // The server is the authority on whether this trip may still be
+      // tracked. Once it says the trip is closed or no longer this driver's,
+      // every further post is refused - keeping the service (and its "Trip in
+      // progress" notification) alive would only drain the battery until the
+      // 12h cap. Validation errors and outages carry other codes and are
+      // retried as before.
+      if (_terminalErrorCodes.contains(errorCode)) {
+        unawaited(FlutterForegroundTask.stopService());
+        return;
+      }
 
       _lastPosted = position;
       _lastPostedAt = DateTime.now();
@@ -543,7 +561,9 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
   }
 
   /// Plain `dart:io` POST — mirrors the headers ApiClient sends.
-  Future<void> _send(
+  /// Posts [payload] and returns the server's `error_code`, or null when the
+  /// request succeeded or the error carried no code.
+  Future<String?> _send(
     Uri url,
     Map<String, dynamic> payload, {
     required String token,
@@ -563,8 +583,25 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
       final response = await request.close().timeout(
         const Duration(seconds: 20),
       );
-      // Drain so the connection can be reused/closed cleanly.
-      await response.drain<void>();
+      if (response.statusCode < 400) {
+        // Drain so the connection can be reused/closed cleanly.
+        await response.drain<void>();
+        return null;
+      }
+
+      try {
+        final body = await response.transform(utf8.decoder).join();
+        final decoded = jsonDecode(body);
+        if (decoded is Map) {
+          final code =
+              decoded['error_code'] ??
+              (decoded['data'] is Map ? decoded['data']['error_code'] : null);
+          return code?.toString();
+        }
+      } catch (_) {
+        // Unreadable error body: treat as a transient failure.
+      }
+      return null;
     } finally {
       client.close(force: true);
     }

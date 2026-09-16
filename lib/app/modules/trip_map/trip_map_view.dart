@@ -398,6 +398,16 @@ class _TripMapViewState extends State<TripMapView> with WidgetsBindingObserver {
   /// dashboard counts and the next pickup.
   void _leaveAfterCompletion() {
     if (!mounted) return;
+    // The trip is closed, so its live session must end here. Home's reload
+    // cannot do it: it only stops a session belonging to the *next* pickup,
+    // and a closed trip is never the next pickup - so a driver with another
+    // assignment kept "Trip in progress" running for up to 12 hours.
+    unawaited(
+      Get.find<DriverTrackingService>().stopLive(
+        uuid: args.uuid,
+        assignmentId: args.assignmentId,
+      ),
+    );
     Get.until((route) => route.isFirst);
   }
 
@@ -935,6 +945,15 @@ class _TripMapViewState extends State<TripMapView> with WidgetsBindingObserver {
         assignmentId: assignmentId,
         mode: mode,
       );
+    } else if (mode == DriverTrackingMode.off) {
+      // Closed while this screen was open (e.g. completed from another
+      // device or by dispatch): stop this trip's session, and only this one.
+      unawaited(
+        Get.find<DriverTrackingService>().stopLive(
+          uuid: args.uuid,
+          assignmentId: assignmentId,
+        ),
+      );
     }
 
     final target = await BackgroundTrackingService.runningTarget();
@@ -1007,7 +1026,10 @@ class _TripMapViewState extends State<TripMapView> with WidgetsBindingObserver {
     // has moved since the last one.
     final modeChanged = _lastRouteMode != null && _lastRouteMode != mode;
 
-    if (!force && !modeChanged && mode == 'passenger' && _lastRouteMode == mode) {
+    if (!force &&
+        !modeChanged &&
+        mode == 'passenger' &&
+        _lastRouteMode == mode) {
       return;
     }
 
