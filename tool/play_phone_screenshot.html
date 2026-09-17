@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Veha Booking Driver — Play Store screenshot</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 900px;
+      height: 1600px;
+      margin: 0;
+      overflow: hidden;
+      background: #eef4f4;
+    }
+
+    .artboard {
+      --navy: #091d4d;
+      --teal: #08b7a6;
+      position: relative;
+      width: 900px;
+      height: 1600px;
+      overflow: hidden;
+      color: var(--navy);
+      background:
+        radial-gradient(circle at 84% 8%, rgba(8, 183, 166, .16), transparent 24%),
+        linear-gradient(160deg, #f8fbfa 0%, #edf5f4 56%, #dceceb 100%);
+      font-family: "Avenir Next", Avenir, sans-serif;
+    }
+
+    .route-line {
+      position: absolute;
+      top: -80px;
+      right: -250px;
+      width: 680px;
+      height: 680px;
+      border: 2px solid rgba(8, 183, 166, .14);
+      border-radius: 50%;
+      box-shadow: 0 0 0 42px rgba(8, 183, 166, .035),
+                  0 0 0 94px rgba(8, 183, 166, .025);
+    }
+
+    header {
+      position: relative;
+      z-index: 2;
+      height: 230px;
+      padding: 56px 72px 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      color: var(--teal);
+      font-size: 19px;
+      font-weight: 750;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .brand img {
+      width: 42px;
+      height: 42px;
+      padding: 5px;
+      border-radius: 12px;
+      background: var(--teal);
+      object-fit: contain;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 62px;
+      line-height: 1.04;
+      letter-spacing: -.035em;
+      font-weight: 700;
+    }
+
+    .device {
+      position: absolute;
+      z-index: 3;
+      left: 138px;
+      top: 246px;
+      width: 624px;
+      height: 1358px;
+      padding: 12px;
+      overflow: hidden;
+      border-radius: 48px 48px 0 0;
+      background: #111722;
+      box-shadow: 0 32px 70px rgba(8, 29, 77, .26),
+                  0 7px 20px rgba(8, 29, 77, .18);
+    }
+
+    .screen {
+      display: block;
+      width: 600px;
+      height: 1333px;
+      object-fit: cover;
+      border-radius: 37px 37px 0 0;
+      background: #f5f7f8;
+    }
+
+    .speaker {
+      position: absolute;
+      z-index: 4;
+      top: 20px;
+      left: 50%;
+      width: 82px;
+      height: 8px;
+      border-radius: 99px;
+      transform: translateX(-50%);
+      background: rgba(20, 25, 31, .72);
+    }
+
+    .privacy-blur {
+      display: none;
+      position: absolute;
+      z-index: 5;
+      left: 424px;
+      top: 404px;
+      width: 178px;
+      height: 84px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .62);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .privacy-blur::after {
+      content: "Customer details protected";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #6f7b7b;
+      font-size: 12px;
+      font-weight: 650;
+      letter-spacing: .01em;
+    }
+
+    .trip-version .privacy-blur { display: block; }
+  </style>
+</head>
+<body>
+  <main class="artboard">
+    <span class="route-line"></span>
+    <header>
+      <div class="brand">
+        <img src="../assets/branding/icon_foreground.png" alt="">
+        <span>Veha Booking Driver</span>
+      </div>
+      <h1 id="headline">Your trips at a glance.</h1>
+    </header>
+    <div class="device">
+      <span class="speaker"></span>
+      <img id="screen" class="screen" src="../play-assets/phone-home-en.png" alt="">
+      <span class="privacy-blur" aria-label="Customer details hidden for privacy"></span>
+    </div>
+  </main>
+  <script>
+    const version = new URLSearchParams(window.location.search).get('screen');
+    const headline = document.getElementById('headline');
+    const screen = document.getElementById('screen');
+
+    if (version === 'map') {
+      headline.textContent = 'Navigate with confidence.';
+      screen.src = '../play-assets/map-screen.png';
+    } else if (version === 'trip') {
+      headline.textContent = 'Your next trip, ready.';
+      screen.src = '../play-assets/phone-home-trip-source.png';
+    } else if (version === 'booking') {
+      headline.textContent = 'My bookings';
+      screen.src = '../play-assets/booking-assigned.png';
+    } else if (version === 'home-upcoming') {
+      headline.textContent = 'Your upcoming booking.';
+      screen.src = '../play-assets/home-upcoming.png';
+    } else {
+      headline.textContent = 'Your upcoming booking.';
+      screen.src = '../play-assets/home-upcoming.png';
+    }
+  </script>
+</body>
+</html>

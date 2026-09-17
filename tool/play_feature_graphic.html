@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Veha Booking Driver — Google Play feature graphic</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 1024px;
+      height: 500px;
+      margin: 0;
+      overflow: hidden;
+      background: #0a1d49;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+    }
+
+    .artboard {
+      position: relative;
+      width: 1024px;
+      height: 500px;
+      overflow: hidden;
+      color: #fff;
+      background:
+        radial-gradient(circle at 76% 38%, rgba(25, 190, 177, .28), transparent 27%),
+        linear-gradient(118deg, #08183e 0%, #0b2254 56%, #0e3a63 100%);
+    }
+
+    .glow {
+      position: absolute;
+      width: 430px;
+      height: 430px;
+      right: 48px;
+      top: 38px;
+      border-radius: 50%;
+      border: 1px solid rgba(124, 231, 221, .18);
+      box-shadow: 0 0 0 34px rgba(44, 195, 181, .035),
+                  0 0 0 76px rgba(44, 195, 181, .025);
+    }
+
+    .route {
+      position: absolute;
+      inset: 0;
+      opacity: .55;
+    }
+
+    .copy {
+      position: absolute;
+      left: 118px;
+      top: 82px;
+      width: 440px;
+      z-index: 3;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      margin-bottom: 42px;
+    }
+
+    .mark {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .16));
+    }
+
+    .brand-name {
+      font-size: 18px;
+      font-weight: 760;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 430px;
+      font-size: 53px;
+      line-height: .98;
+      letter-spacing: -.045em;
+      font-weight: 780;
+    }
+
+    h1 span { color: #67ddd2; }
+
+    .tagline {
+      margin: 24px 0 0;
+      color: rgba(255, 255, 255, .78);
+      font-size: 17px;
+      line-height: 1.4;
+      letter-spacing: .015em;
+    }
+
+    .phone {
+      position: absolute;
+      z-index: 4;
+      left: 678px;
+      top: 28px;
+      width: 209px;
+      height: 464px;
+      padding: 7px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .28);
+      border-radius: 31px;
+      background: #10151f;
+      box-shadow: 0 26px 60px rgba(0, 0, 0, .42),
+                  0 7px 18px rgba(0, 0, 0, .28);
+      transform: rotate(2.6deg);
+    }
+
+    .screen {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 24px;
+    }
+
+    .speaker {
+      position: absolute;
+      z-index: 5;
+      top: 12px;
+      left: 50%;
+      width: 42px;
+      height: 4px;
+      border-radius: 5px;
+      transform: translateX(-50%);
+      background: rgba(10, 14, 20, .8);
+    }
+
+    .pin {
+      position: absolute;
+      z-index: 2;
+      right: 100px;
+      bottom: 46px;
+      width: 12px;
+      height: 12px;
+      border: 3px solid #68ded3;
+      border-radius: 50%;
+      box-shadow: 0 0 0 7px rgba(104, 222, 211, .13);
+    }
+  </style>
+</head>
+<body>
+  <main class="artboard">
+    <div class="glow"></div>
+    <svg class="route" viewBox="0 0 1024 500" aria-hidden="true">
+      <path d="M-30 468 C 135 414, 170 460, 307 411 S 472 286, 591 328 S 759 403, 1054 265"
+        fill="none" stroke="rgba(103,221,210,.24)" stroke-width="2"/>
+      <path d="M-24 483 C 145 427, 180 475, 315 425 S 474 302, 593 342 S 770 419, 1051 281"
+        fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1" stroke-dasharray="8 11"/>
+      <circle cx="306" cy="411" r="5" fill="#67ddd2"/>
+      <circle cx="591" cy="328" r="5" fill="#67ddd2"/>
+    </svg>
+
+    <section class="copy">
+      <div class="brand">
+        <img class="mark" src="../assets/branding/icon_foreground.png" alt="">
+        <div class="brand-name">Veha Booking Driver</div>
+      </div>
+      <h1>Every trip.<br><span>One clear route.</span></h1>
+      <p class="tagline">Pickup&nbsp;&nbsp;•&nbsp;&nbsp;Navigate&nbsp;&nbsp;•&nbsp;&nbsp;Drop-off</p>
+    </section>
+
+    <div class="phone">
+      <span class="speaker"></span>
+      <img class="screen" src="../play-assets/map-screen.png" alt="Veha Booking Driver route map">
+    </div>
+    <span class="pin"></span>
+  </main>
+</body>
+</html>
