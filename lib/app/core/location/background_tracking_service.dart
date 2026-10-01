@@ -6,6 +6,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../theme/app_colors.dart';
+import 'location_service.dart';
 
 /// Live-trip location tracking that outlives the UI.
 ///
@@ -494,7 +495,7 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
         'longitude': position.longitude,
         if (!position.accuracy.isNaN) 'accuracy': position.accuracy,
         'speed': ?speedKmh,
-        if (!position.heading.isNaN) 'heading': position.heading,
+        'heading': ?DriverLocation.validHeading(position.heading),
         'is_moving': (speedKmh ?? 0) > 3,
         'is_mock_location': position.isMocked,
         'provider': 'foreground_service',
@@ -529,7 +530,7 @@ class _BackgroundTrackingTaskHandler extends TaskHandler {
         'longitude': position.longitude,
         'accuracy': position.accuracy.isNaN ? null : position.accuracy,
         'speed': position.speed.isNaN ? null : position.speed,
-        'heading': position.heading.isNaN ? null : position.heading,
+        'heading': DriverLocation.validHeading(position.heading),
       });
     } catch (_) {
       // The service must never die because of a bad fix or network blip.

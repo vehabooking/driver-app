@@ -25,6 +25,11 @@ class DriverLocation {
   }
 
   bool get isMoving => (speedKmh ?? 0) > 3;
+
+  /// Course in degrees, or null when unknown. iOS reports -1 while the device
+  /// is stationary, which the API rejects ("heading must be between 0 and 360").
+  static double? validHeading(double heading) =>
+      heading.isNaN || heading < 0 || heading > 360 ? null : heading;
 }
 
 class LocationUnavailableException implements Exception {
@@ -61,7 +66,7 @@ class LocationService {
       longitude: position.longitude,
       accuracyMeters: position.accuracy,
       speedMetersPerSecond: position.speed.isNaN ? null : position.speed,
-      heading: position.heading.isNaN ? null : position.heading,
+      heading: DriverLocation.validHeading(position.heading),
     );
   }
 
@@ -82,7 +87,7 @@ class LocationService {
         longitude: position.longitude,
         accuracyMeters: position.accuracy,
         speedMetersPerSecond: position.speed.isNaN ? null : position.speed,
-        heading: position.heading.isNaN ? null : position.heading,
+        heading: DriverLocation.validHeading(position.heading),
       ),
     );
   }

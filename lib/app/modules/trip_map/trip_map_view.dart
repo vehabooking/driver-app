@@ -56,6 +56,15 @@ const _soloZoom = 15.5;
 /// Closest the automatic fit is allowed to go, so short routes still show
 /// their surroundings instead of a rooftop.
 const _maxFitZoom = 16.5;
+
+/// Routes shorter than this are framed with a single centred move at
+/// [_maxFitZoom]; fitting their bounds first zooms to rooftop level and then
+/// bounces back out.
+const _shortRouteSpanMeters = 600.0;
+
+/// Gap between the car/pin and the road line (both often sit off-road) above
+/// which a dashed connector is drawn, so the line visibly reaches them.
+const _connectorGapMeters = 12.0;
 const _locationSyncInterval = Duration(seconds: 20);
 const _locationSyncDistanceMeters = 20.0;
 const _pickupApproachingDistanceMeters = 1000.0;
@@ -795,7 +804,53 @@ class _TripMapViewState extends State<TripMapView> with WidgetsBindingObserver {
       );
     }
 
+    // Google snaps the line to the nearest road, so near the pickup it can
+    // stop short of the car and the pin (or not exist at all). Bridge those
+    // gaps with dashed connectors so the driver always sees where to go.
+    if (_routeMode != 'passenger' && _activeTarget.hasCoordinates) {
+      final driver = LatLng(
+        _driverLocation!.latitude,
+        _driverLocation!.longitude,
+      );
+      final target = LatLng(
+        _activeTarget.latitude!,
+        _activeTarget.longitude!,
+      );
+
+      if (roadPoints != null && roadPoints.length > 1) {
+        _addConnector(polylines, 'connector_start', driver, roadPoints.first);
+        _addConnector(polylines, 'connector_end', roadPoints.last, target);
+      } else {
+        _addConnector(polylines, 'connector_direct', driver, target);
+      }
+    }
+
     return polylines;
+  }
+
+  void _addConnector(
+    Set<Polyline> polylines,
+    String id,
+    LatLng from,
+    LatLng to,
+  ) {
+    final gap = _distanceMeters(
+      from.latitude,
+      from.longitude,
+      to.latitude,
+      to.longitude,
+    );
+    if (gap < _connectorGapMeters) return;
+
+    polylines.add(
+      Polyline(
+        polylineId: PolylineId(id),
+        points: [from, to],
+        color: AppColors.primary.withValues(alpha: 0.75),
+        width: 4,
+        patterns: [PatternItem.dash(14), PatternItem.gap(10)],
+      ),
+    );
   }
 
   Future<void> _refreshLocation() async {
@@ -1176,9 +1231,29 @@ class _TripMapViewState extends State<TripMapView> with WidgetsBindingObserver {
       return;
     }
 
-    await controller.animateCamera(
-      CameraUpdate.newLatLngBounds(_boundsFor(points), 56),
+    final bounds = _boundsFor(points);
+    final span = _distanceMeters(
+      bounds.southwest.latitude,
+      bounds.southwest.longitude,
+      bounds.northeast.latitude,
+      bounds.northeast.longitude,
     );
+    if (span < _shortRouteSpanMeters) {
+      await controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng(
+              (bounds.southwest.latitude + bounds.northeast.latitude) / 2,
+              (bounds.southwest.longitude + bounds.northeast.longitude) / 2,
+            ),
+            zoom: _maxFitZoom,
+          ),
+        ),
+      );
+      return;
+    }
+
+    await controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 56));
 
     // A short hop fits to a zoom so tight the driver sees rooftops; pull back
     // to a level where the car, the road names and the route all read. Give
@@ -1281,7 +1356,15 @@ class _TripMapViewState extends State<TripMapView> with WidgetsBindingObserver {
   List<LatLng> _cameraPoints() {
     final roadPoints = _roadRoute?.points;
     if (roadPoints != null && roadPoints.length > 1) {
-      return roadPoints;
+      // The car and the pin can sit off the road line; keep them in frame.
+      return [
+        ...roadPoints,
+        if (_routeMode != 'passenger') ...[
+          LatLng(_driverLocation!.latitude, _driverLocation!.longitude),
+          if (_activeTarget.hasCoordinates)
+            LatLng(_activeTarget.latitude!, _activeTarget.longitude!),
+        ],
+      ];
     }
 
     if (_routeMode == 'passenger') {

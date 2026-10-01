@@ -4,7 +4,7 @@ Account: **IT SOLUTION DIGITAL CO., LTD** (Team ID `9LQ2SJ97JQ`) · Bundle ID: `
 App Store Connect app ID: `6817576515` · Seller/company name shown on store: **Veha Booking** (permanent)
 ⚠️ = likely App Review rejection if skipped.
 
-**Status:** 1.0.2 (10) submitted 1 Oct 2026 — Waiting for Review. See [Review log](#review-log).
+**Status:** 1.0.2 (10) — 2.1 Information Needed (1 Oct 2026); reply + video, then resubmit. See [Review log](#review-log).
 
 ---
 
@@ -67,6 +67,7 @@ Everything in sections 1–4 below is one-time setup and already done. For each 
 - [ ] **iPhone screen recording of a full trip** (Start → Arrived → Meet → Drop) — have it ready in case Review asks — 2.5.4
 - [x] Permission strings clear (location when-in-use / always, camera, photos)
 - [x] Account deletion — not required (no in-app sign-up); notes say drivers request deletion via operator or /contact — 5.1.1(v)
+- [ ] Next update: trip map when the car is ~50–100 m from the pickup — road line still looks disconnected on build 12 (seen with an office test booking, A and B 77 m apart); collect a screenshot from a real trip, then fix
 - [ ] Next update: add in-app **Delete account** (needs a driver API endpoint; also expected by Google Play)
 - [x] Production API, no staging URLs or placeholder text in the build
 - [x] Force-update minimum version on backend ≤ submitted version
@@ -89,6 +90,8 @@ Everything in sections 1–4 below is one-time setup and already done. For each 
 ## 5. Build & upload history
 - [x] 1.0.2 (9) — 30 Sep 2026 — first upload; **not submitted** (no in-app privacy link, followed system dark mode)
 - [x] 1.0.2 (10) — 1 Oct 2026 — privacy link, Light default, welcome screen fix, light native UI → **submitted**
+- [x] 1.0.2 (11) — 1 Oct 2026 — fix iOS "heading must be between 0 and 360" (iOS reports heading -1 when stationary) on I've arrived / tracking; privacy manifest 9 data types
+- [x] 1.0.2 (12) — 1 Oct 2026 — trip map near pickup: no zoom bounce on short routes (single centred move), dashed connectors from car/pin to the road line, car + pin always in frame
 
 ## 6. TestFlight
 - [ ] Internal group `Veha Team` (automatic distribution) + testers
@@ -101,6 +104,7 @@ Everything in sections 1–4 below is one-time setup and already done. For each 
 - [ ] Rejected → read Resolution Center, fix, log it below
 
 ## Known gotchas
+- **iOS heading -1:** iPhones report heading/course -1 while stationary; always send it through `DriverLocation.validHeading` (server accepts 0–360 only).
 - **White screen on simulator/phone:** device and simulator builds share Flutter's `objective_c` native-asset cache. Fix: stop other `flutter run`, then `flutter clean`.
 - **dSYM warning for `objective_c.framework`** on every upload: harmless, ignore.
 - **Simulator screenshots:** set region to `en_US` (Cambodia English shows "9:41 in the morning") and override the status bar:
@@ -111,3 +115,4 @@ Everything in sections 1–4 below is one-time setup and already done. For each 
 | Date | Build | Result | Notes |
 |---|---|---|---|
 | 2026-10-01 | 1.0.2 (10) | Waiting for Review | First submission. Cambodia only, iPhone only, manual release. |
+| 2026-10-01 | 1.0.2 (10) | **Rejected — 2.1 Information Needed** (new developer account) | Apple asked for: iPhone screen recording from app launch, purpose/audience, access steps, external services, regional differences, regulated-industry info; hinted at 3.2 (business-only apps). No code issue. Reply drafted in `review_information/reply-2026-10-01.md`; resubmit build 10 with video. |

@@ -58,3 +58,4 @@ app.*.map.json
 # Store API keys (App Store Connect .p8, Play service account JSON)
 /store/**/*.p8
 /store/**/*service-account*.json
+/store/app-store/metadata/review_information/reply-*.md
