@@ -1,0 +1,25 @@
+Veha Booking Driver is the official app for transport drivers registered with a Veha Booking operator. It helps you manage the private and airport transfer trips your operator assigns to you, from pickup to drop-off.
+
+ASSIGNED TRIPS
+• See today's and upcoming trips assigned by your operator
+• Full booking details: pickup point, destination, time and passenger info
+
+PICKUP & NAVIGATION
+• Route map to the pickup and the destination
+• Open directions in your preferred maps app
+• Call the passenger with one tap
+
+TRIP PROGRESS
+• Move each trip through clear steps: Start, Arrived, Meet Passenger, Drop Passenger
+• Report a pickup issue if the passenger cannot be found
+
+LIVE TRIP TRACKING
+• During an active trip, your location is shared with dispatch and the passenger so they know when you will arrive
+• Tracking runs only while a trip is in progress and stops when the trip ends
+
+MORE
+• Trip notifications
+• English and Khmer
+• Light and dark mode
+
+An account is required. Driver accounts are created by your Veha Booking operator; contact your operator for access.

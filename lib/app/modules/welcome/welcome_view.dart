@@ -8,6 +8,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/i18n/app_translations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_theme.dart';
 import 'welcome_controller.dart';
 import '../../core/theme/app_ink.dart';
 
@@ -19,20 +20,25 @@ class WelcomeView extends GetView<WelcomeController> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final size = MediaQuery.sizeOf(context);
     final topOffset = size.height < 760 ? AppSpacing.md : AppSpacing.xl;
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).canvas,
-        body: _WelcomeScene(
-          topOffset: topOffset,
-          compact: size.height < 760,
-          langToggle: _langToggle(context),
-          controller: controller,
+    // The artwork is always light, so pin this screen to the light theme;
+    // otherwise dark-mode ink turns the headline and CTA label unreadable.
+    return Theme(
+      data: AppTheme.light(),
+      child: Builder(
+        builder: (context) => AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle.dark,
+          child: Scaffold(
+            backgroundColor: Theme.of(context).canvas,
+            body: _WelcomeScene(
+              topOffset: topOffset,
+              compact: size.height < 760,
+              langToggle: _langToggle(context),
+              controller: controller,
+            ),
+          ),
         ),
       ),
     );

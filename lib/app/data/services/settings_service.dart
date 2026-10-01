@@ -12,7 +12,8 @@ class SettingsService extends GetxService {
   final StorageService _storage;
 
   final Rx<Locale> locale = AppTranslations.englishLocale.obs;
-  final Rx<ThemeMode> themeMode = ThemeMode.system.obs;
+  // Light by default; drivers can opt into dark or system in Profile.
+  final Rx<ThemeMode> themeMode = ThemeMode.light.obs;
 
   SettingsService init() {
     locale.value = AppTranslations.fromCode(_storage.locale);
@@ -40,6 +41,6 @@ class SettingsService extends GetxService {
 
   ThemeMode _themeFromName(String? name) => ThemeMode.values.firstWhere(
     (e) => e.name == name,
-    orElse: () => ThemeMode.system,
+    orElse: () => ThemeMode.light,
   );
 }

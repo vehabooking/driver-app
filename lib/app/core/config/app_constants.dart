@@ -8,7 +8,8 @@ class AppConstants {
 
   // GetStorage keys (non-sensitive).
   static const String localeKey = 'locale';
-  static const String themeModeKey = 'theme_mode';
+  // v2: resets pre-light-default choices so every install starts in light.
+  static const String themeModeKey = 'theme_mode_v2';
 
   // A stable per-install device name sent with login/logout.
   static const String deviceNameKey = 'device_name';
@@ -25,6 +26,9 @@ class AppConstants {
   // Device takeover OTP: fallbacks when the backend omits the timings.
   static const int takeoverOtpDefaultExpirySeconds = 300;
   static const int takeoverResendCooldownSeconds = 60;
+
+  // Public privacy policy (App Store 5.1.1 requires an in-app link).
+  static const String privacyPolicyUrl = 'https://vehabooking.com/privacy';
 
   // Default list page size (backend honours `limit`).
   static const int pageSize = 20;

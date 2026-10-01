@@ -393,6 +393,8 @@ const Map<String, String> enUS = {
   'support': 'Support',
   'edit_profile': 'Edit profile',
   'help_and_guide': 'Help & Guide',
+  'privacy_policy': 'Privacy Policy',
+  'privacy_policy_open_failed': 'Could not open the privacy policy.',
   'first_name': 'First name',
   'last_name': 'Last name',
   'phone': 'Phone number',

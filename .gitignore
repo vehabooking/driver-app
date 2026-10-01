@@ -51,3 +51,10 @@ app.*.map.json
 # Firebase app config files. Keep environment-specific mobile config out of Git.
 /android/app/google-services.json
 /ios/Runner/GoogleService-Info.plist
+
+# Store review demo credentials — enter in App Store Connect / Play Console, never commit.
+/store/app-store/metadata/review_information/demo_user.txt
+/store/app-store/metadata/review_information/demo_password.txt
+# Store API keys (App Store Connect .p8, Play service account JSON)
+/store/**/*.p8
+/store/**/*service-account*.json

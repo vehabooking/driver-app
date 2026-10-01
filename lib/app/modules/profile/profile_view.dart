@@ -109,6 +109,12 @@ class ProfileView extends GetView<ProfileController> {
                         title: 'help_and_guide'.tr,
                         onTap: controller.openGuide,
                       ),
+                      const SizedBox(height: AppSpacing.sm),
+                      _NavRow(
+                        icon: IconsaxPlusLinear.shield_tick,
+                        title: 'privacy_policy'.tr,
+                        onTap: controller.openPrivacyPolicy,
+                      ),
                       const SizedBox(height: AppSpacing.lg),
 
                       _CompactPrefs(controller: controller),

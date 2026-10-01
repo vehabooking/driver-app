@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Veha Booking Driver — App Store screenshot</title>
+  <!--
+    App Store 6.9" iPhone screenshot (1320x2868). Pick the slide with ?shot=1..4.
+    Render: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless
+      --hide-scrollbars --window-size=1320,2868 --screenshot=out.png "file://.../appstore_screenshot.html?shot=1"
+    Raw captures live in store/app-store/screenshots/source/ (iPhone 17 Pro Max simulator).
+  -->
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 1320px;
+      height: 2868px;
+      margin: 0;
+      overflow: hidden;
+      background: #eef4f4;
+    }
+
+    .artboard {
+      --navy: #091d4d;
+      --teal: #08b7a6;
+      position: relative;
+      width: 1320px;
+      height: 2868px;
+      overflow: hidden;
+      color: var(--navy);
+      background:
+        radial-gradient(circle at 86% 6%, rgba(8, 183, 166, .18), transparent 26%),
+        radial-gradient(circle at 6% 62%, rgba(9, 29, 77, .06), transparent 30%),
+        linear-gradient(160deg, #f8fbfa 0%, #edf5f4 56%, #d9ebe9 100%);
+      font-family: "Avenir Next", Avenir, sans-serif;
+    }
+
+    .rings {
+      position: absolute;
+      top: -160px;
+      right: -380px;
+      width: 1000px;
+      height: 1000px;
+      border: 3px solid rgba(8, 183, 166, .14);
+      border-radius: 50%;
+      box-shadow: 0 0 0 62px rgba(8, 183, 166, .035),
+                  0 0 0 140px rgba(8, 183, 166, .025);
+    }
+
+    header {
+      position: relative;
+      z-index: 2;
+      padding: 150px 110px 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 36px;
+      color: var(--teal);
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .brand img {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      object-fit: cover;
+      box-shadow: 0 6px 18px rgba(9, 29, 77, .14);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 104px;
+      line-height: 1.04;
+      letter-spacing: -.035em;
+      font-weight: 700;
+    }
+
+    h1 em {
+      font-style: normal;
+      color: var(--teal);
+    }
+
+    p.sub {
+      margin: 30px 0 0;
+      max-width: 1000px;
+      font-size: 42px;
+      line-height: 1.32;
+      font-weight: 500;
+      color: rgba(9, 29, 77, .66);
+    }
+
+    .phone {
+      position: absolute;
+      left: 50%;
+      top: 740px;
+      width: 900px;
+      transform: translateX(-50%);
+      padding: 26px;
+      border-radius: 136px;
+      background: linear-gradient(145deg, #1d2433, #05070c);
+      box-shadow:
+        0 0 0 4px #3a4252 inset,
+        0 60px 120px rgba(9, 29, 77, .28),
+        0 20px 40px rgba(9, 29, 77, .18);
+    }
+
+    .phone img {
+      display: block;
+      width: 100%;
+      border-radius: 112px;
+    }
+  </style>
+</head>
+<body>
+  <div class="artboard">
+    <div class="rings"></div>
+    <header>
+      <div class="brand">
+        <img src="../assets/branding/app_icon.png" alt="">
+        Veha Booking Driver
+      </div>
+      <h1 id="title"></h1>
+      <p class="sub" id="sub"></p>
+    </header>
+    <div class="phone"><img id="screen" alt=""></div>
+  </div>
+
+  <script>
+    const SRC = '../store/app-store/screenshots/source/';
+    const SHOTS = {
+      1: { img: 'raw-1-home.png',    title: 'Your next trip,<br><em>at a glance</em>',
+           sub: 'Pickup time, route and passenger for every trip your operator assigns.' },
+      2: { img: 'raw-3-route.png',   title: 'Navigate straight<br><em>to the pickup</em>',
+           sub: 'See the full route and distance, then start the trip with one tap.' },
+      3: { img: 'raw-2-detail.png',  title: 'Every trip detail<br><em>in one place</em>',
+           sub: 'Route, departure time, vehicle and passenger info before you drive.' },
+      4: { img: 'raw-0-welcome.png', title: 'Made for<br><em>Veha drivers</em>',
+           sub: 'Manage each trip step clearly, in English or Khmer.' },
+    };
+    const shot = SHOTS[new URLSearchParams(location.search).get('shot')] || SHOTS[1];
+    document.getElementById('title').innerHTML = shot.title;
+    document.getElementById('sub').textContent = shot.sub;
+    document.getElementById('screen').src = SRC + shot.img;
+  </script>
+</body>
+</html>

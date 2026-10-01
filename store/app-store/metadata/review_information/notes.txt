@@ -1,0 +1,19 @@
+Veha Booking Driver is a companion app for drivers employed by transport operators on the Veha Booking platform (vehabooking.com). Accounts are created by the operator in the vendor dashboard; there is no public sign-up in the app.
+
+DEMO ACCOUNT
+The demo account in the Sign-In Information fields has trips pre-assigned so every screen can be reviewed. No OTP is required to sign in.
+
+HOW TO TEST
+1. Log in with the demo account (email + password).
+2. Home shows the assigned trips. Tap a trip to see booking details (route, time, vehicle, passenger).
+3. Tap "View pickup route" to see the route map from the driver's location to the pickup.
+4. Tap "Start Now" and allow location. The trip moves to "On the way" and live tracking starts.
+
+IMPORTANT - LOCATION-GATED STEP
+The demo trips are in Cambodia (Siem Reap -> Pailin). The next step, "I've arrived", only unlocks when the driver is physically near the pickup point, so it stays disabled outside Cambodia. This is intentional: it prevents drivers from marking arrival before they are really at the pickup. We can provide a screen recording of the full trip on request.
+
+BACKGROUND LOCATION (UIBackgroundModes: location)
+Location is used only while a trip is active, so dispatch and the passenger can see the driver's live position while the driver navigates in another maps app with the screen locked. Tracking stops automatically when the trip ends or is closed.
+
+ACCOUNT DELETION
+Driver accounts are created and managed by the transport operator; there is no in-app sign-up. A driver can request account deletion from their operator or via https://vehabooking.com/contact, and the operator deletes it from the vendor dashboard.

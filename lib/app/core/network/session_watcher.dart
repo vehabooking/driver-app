@@ -13,15 +13,22 @@ import '../../data/services/auth_service.dart';
 /// [ApiClient.onUnauthorized]). Neither fires for a phone that was simply left
 /// open — the driver would return to a screen full of stale data. So on resume
 /// we make one cheap authenticated call; a 401 takes the usual sign-out path.
+/// While the app stays open we also re-check on a timer, since a silent push
+/// can be dropped (iOS throttles them) and an idle screen makes no requests.
 class SessionWatcher extends GetxService with WidgetsBindingObserver {
   /// Ignore rapid foreground/background flips (permission sheets, the camera).
   static const Duration _minInterval = Duration(seconds: 20);
 
+  /// Foreground re-check cadence for a phone left open on one screen.
+  static const Duration _pollInterval = Duration(minutes: 1);
+
   DateTime? _lastCheck;
   bool _checking = false;
+  Timer? _poll;
 
   SessionWatcher start() {
     WidgetsBinding.instance.addObserver(this);
+    _startPolling();
     return this;
   }
 
@@ -29,7 +36,20 @@ class SessionWatcher extends GetxService with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(check());
+      _startPolling();
+    } else if (state == AppLifecycleState.paused) {
+      _stopPolling();
     }
+  }
+
+  void _startPolling() {
+    _poll?.cancel();
+    _poll = Timer.periodic(_pollInterval, (_) => unawaited(check()));
+  }
+
+  void _stopPolling() {
+    _poll?.cancel();
+    _poll = null;
   }
 
   Future<void> check() async {
@@ -59,6 +79,7 @@ class SessionWatcher extends GetxService with WidgetsBindingObserver {
 
   @override
   void onClose() {
+    _stopPolling();
     WidgetsBinding.instance.removeObserver(this);
     super.onClose();
   }

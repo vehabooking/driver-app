@@ -26,6 +26,9 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>GoogleMapsApiKey</key>
 		<string>$(GOOGLE_MAPS_API_KEY)</string>
+		<!-- Only standard HTTPS/TLS: skips the export-compliance prompt on every upload -->
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>UIApplicationSceneManifest</key>
@@ -84,6 +87,8 @@
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>location</string>
+			<!-- FCM data messages -->
+			<string>remote-notification</string>
 		</array>
 		<!-- Profile photo upload -->
 		<key>NSPhotoLibraryUsageDescription</key>
@@ -104,6 +109,9 @@
 				</dict>
 			</dict>
 		</dict>
+		<!-- App defaults to light theme; keep native UI (keyboard, alerts, pickers) light too -->
+		<key>UIUserInterfaceStyle</key>
+		<string>Light</string>
 		<key>UIStatusBarHidden</key>
 		<false/>
 	</dict>

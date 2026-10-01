@@ -386,6 +386,8 @@ const Map<String, String> kmKH = {
   'support': 'ជំនួយ',
   'edit_profile': 'កែប្រែប្រវត្តិរូប',
   'help_and_guide': 'ជំនួយ និងការណែនាំ',
+  'privacy_policy': 'គោលការណ៍ឯកជនភាព',
+  'privacy_policy_open_failed': 'មិនអាចបើកគោលការណ៍ឯកជនភាពបានទេ។',
   'first_name': 'នាមខ្លួន',
   'last_name': 'នាមត្រកូល',
   'phone': 'លេខទូរស័ព្ទ',

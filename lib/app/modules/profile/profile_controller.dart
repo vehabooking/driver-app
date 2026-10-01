@@ -7,7 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/config/app_constants.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/utils/app_snackbar.dart';
@@ -297,6 +299,15 @@ class ProfileController extends GetxController {
 
   /// Jump to the Guide tab.
   void openGuide() => Get.find<HomeController>().changeTab(2);
+
+  /// Open the public privacy policy in an in-app browser sheet.
+  Future<void> openPrivacyPolicy() async {
+    final opened = await launchUrl(
+      Uri.parse(AppConstants.privacyPolicyUrl),
+      mode: LaunchMode.inAppBrowserView,
+    );
+    if (!opened) AppSnackbar.error('privacy_policy_open_failed'.tr);
+  }
 
   Future<void> logout() async {
     await _auth.logout();
