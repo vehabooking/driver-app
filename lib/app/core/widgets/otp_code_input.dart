@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -12,7 +15,14 @@ import '../theme/app_spacing.dart';
 ///
 /// [code] mirrors [controller]'s text; the owning controller keeps it in sync
 /// so the boxes can rebuild reactively without a listener of their own.
-class OtpCodeInput extends StatelessWidget {
+///
+/// On Android, switching away to read the SMS dismisses the number pad, but
+/// the field often keeps focus. A plain [FocusNode.requestFocus] is then a
+/// no-op, so the boxes still look active and the keyboard stays hidden. This
+/// widget rebuilds the input connection when the app comes back, and again if
+/// the boxes are tapped while the pad is down. iOS already restores the pad,
+/// so that path is left alone.
+class OtpCodeInput extends StatefulWidget {
   const OtpCodeInput({
     super.key,
     required this.controller,
@@ -39,9 +49,92 @@ class OtpCodeInput extends StatelessWidget {
   static const int length = 6;
 
   @override
+  State<OtpCodeInput> createState() => _OtpCodeInputState();
+}
+
+class _OtpCodeInputState extends State<OtpCodeInput>
+    with WidgetsBindingObserver {
+  Timer? _reopenTimer;
+  bool _focusedBeforeBackground = false;
+
+  bool get _isAndroid => defaultTargetPlatform == TargetPlatform.android;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isAndroid) WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    _reopenTimer?.cancel();
+    if (_isAndroid) WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_isAndroid) return;
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused) {
+      if (widget.focusNode.hasFocus) _focusedBeforeBackground = true;
+      return;
+    }
+    if (state != AppLifecycleState.resumed || !_focusedBeforeBackground) {
+      return;
+    }
+    _focusedBeforeBackground = false;
+    _scheduleReopen();
+  }
+
+  void _scheduleReopen() {
+    _reopenTimer?.cancel();
+    // The activity is not ready to attach an IME in the same frame it resumes.
+    _reopenTimer = Timer(const Duration(milliseconds: 280), _reopenKeyboard);
+  }
+
+  void _onBoxesTap() {
+    if (!widget.enabled) return;
+    if (!_isAndroid) {
+      widget.focusNode.requestFocus();
+      return;
+    }
+    _reopenTimer?.cancel();
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    if (widget.focusNode.hasFocus && keyboardOpen) return;
+    if (widget.focusNode.hasFocus) {
+      _reopenKeyboard();
+      return;
+    }
+    widget.focusNode.requestFocus();
+    _showImeNextFrame();
+  }
+
+  /// Drop the stale connection the OS closed, then focus again so the pad opens.
+  void _reopenKeyboard() {
+    if (!mounted || !widget.enabled) return;
+    final node = widget.focusNode;
+    node.unfocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.enabled) return;
+      node.requestFocus();
+      _showImeNextFrame();
+    });
+  }
+
+  void _showImeNextFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.enabled || !widget.focusNode.hasFocus) return;
+      SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final enabled = widget.enabled;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,7 +145,7 @@ class OtpCodeInput extends StatelessWidget {
             bottom: AppSpacing.md,
           ),
           child: Text(
-            label ?? 'verification_code'.tr,
+            widget.label ?? 'verification_code'.tr,
             style: theme.textTheme.labelMedium?.copyWith(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -63,7 +156,7 @@ class OtpCodeInput extends StatelessWidget {
         ),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: enabled ? focusNode.requestFocus : null,
+          onTap: enabled ? _onBoxesTap : null,
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -71,18 +164,18 @@ class OtpCodeInput extends StatelessWidget {
                 width: 1,
                 height: 1,
                 child: TextFormField(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
                   enabled: enabled,
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.done,
                   autofillHints: const [AutofillHints.oneTimeCode],
-                  maxLength: length,
+                  maxLength: OtpCodeInput.length,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(length),
+                    LengthLimitingTextInputFormatter(OtpCodeInput.length),
                   ],
-                  onFieldSubmitted: (_) => onSubmitted(),
+                  onFieldSubmitted: (_) => widget.onSubmitted(),
                   showCursor: false,
                   style: const TextStyle(color: Colors.transparent),
                   decoration: const InputDecoration(
@@ -96,20 +189,23 @@ class OtpCodeInput extends StatelessWidget {
               LayoutBuilder(
                 builder: (context, constraints) {
                   final boxSize =
-                      ((constraints.maxWidth - (AppSpacing.sm * (length - 1))) /
-                              length)
+                      ((constraints.maxWidth -
+                                  (AppSpacing.sm * (OtpCodeInput.length - 1))) /
+                              OtpCodeInput.length)
                           .clamp(40.0, 48.0);
 
                   return Obx(() {
-                    final value = code.value;
-                    final hasError = errorText != null && errorText!.isNotEmpty;
+                    final value = widget.code.value;
+                    final errorText = widget.errorText;
+                    final hasError = errorText != null && errorText.isNotEmpty;
 
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: List.generate(length, (index) {
+                      children: List.generate(OtpCodeInput.length, (index) {
                         final digit = index < value.length ? value[index] : '';
                         final isActive =
-                            index == value.length && value.length < length;
+                            index == value.length &&
+                            value.length < OtpCodeInput.length;
                         final isFilled = digit.isNotEmpty;
                         final borderColor = hasError
                             ? scheme.error
@@ -160,12 +256,12 @@ class OtpCodeInput extends StatelessWidget {
             ],
           ),
         ),
-        if (errorText != null && errorText!.isNotEmpty) ...[
+        if (widget.errorText != null && widget.errorText!.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
           Padding(
             padding: const EdgeInsets.only(left: AppSpacing.sm),
             child: Text(
-              errorText!,
+              widget.errorText!,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: scheme.error,
                 fontWeight: FontWeight.w600,

@@ -1,4 +1,8 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../core/network/api_exception.dart';
@@ -41,6 +45,8 @@ class ForgotPasswordController extends GetxController {
 
   String? _otpToken;
   String? _resetToken;
+  Worker? _otpFocusWorker;
+  Timer? _otpKeyboardTimer;
 
   @override
   void onInit() {
@@ -62,6 +68,38 @@ class ForgotPasswordController extends GetxController {
     _restorePendingReset(force: shouldForceRestore);
     _syncIdentifierState();
     super.onInit();
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    // Closing the app and reopening it restores this step with a new field
+    // that has never been focused, so the boxes look ready and the pad stays
+    // down. Ask for it whenever the code step is shown.
+    _otpFocusWorker = ever(step, (ForgotPasswordStep value) {
+      if (value == ForgotPasswordStep.verify) _focusOtp();
+    });
+    if (step.value == ForgotPasswordStep.verify) _focusOtp();
+  }
+
+  void _focusOtp() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed || step.value != ForgotPasswordStep.verify) return;
+      if (defaultTargetPlatform != TargetPlatform.android) {
+        otpFocusNode.requestFocus();
+        return;
+      }
+      // The route is not ready for an IME on the same frame it appears.
+      _otpKeyboardTimer?.cancel();
+      _otpKeyboardTimer = Timer(const Duration(milliseconds: 280), () {
+        if (isClosed || step.value != ForgotPasswordStep.verify) return;
+        otpFocusNode.requestFocus();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (isClosed || !otpFocusNode.hasFocus) return;
+          SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+        });
+      });
+    });
   }
 
   void togglePassword() => obscurePassword.toggle();
@@ -390,6 +428,8 @@ class ForgotPasswordController extends GetxController {
 
   @override
   void onClose() {
+    _otpKeyboardTimer?.cancel();
+    _otpFocusWorker?.dispose();
     identifierCtrl.removeListener(_syncIdentifierState);
     otpCtrl.removeListener(_syncOtpState);
     passwordCtrl.removeListener(_syncPasswordState);
