@@ -1,0 +1,1 @@
+Fixes the code screen on Android so the number pad comes back after you leave the app to read the SMS.
